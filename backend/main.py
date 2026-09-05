@@ -906,10 +906,11 @@ def destination_weighbridge_and_cutter(req: DestinationWeighbridgeAndCutter, use
         }
     }
 
-# 5. Double Auction Bidding Engine
+# 5. Double Auction Bidding Engine (Buyers & FPOs can Bid)
 @app.post("/api/v1/bids/create")
-def place_buyer_bid(bid: BidPlacementRequest, user: dict = Depends(RoleChecker(["BUYER"])), db: Session = Depends(get_db)):
+def place_buyer_bid(bid: BidPlacementRequest, user: dict = Depends(RoleChecker(["BUYER", "FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
     bid_id = f"BID-{int(datetime.now(timezone.utc).timestamp()) % 100000}"
+    bid_status = "OPEN_FPO_OFFER" if user.get("role") == "FPO" else "OPEN_AUCTION"
     new_bid = models.BuyerBid(
         bid_id=bid_id,
         buyer_id=user["id"],
@@ -919,17 +920,19 @@ def place_buyer_bid(bid: BidPlacementRequest, user: dict = Depends(RoleChecker([
         target_qty_qtl=bid.target_qty_qtl,
         target_bid_price_per_qtl=bid.target_bid_price_per_qtl,
         delivery_city=bid.delivery_city,
-        status="OPEN_AUCTION"
+        status=bid_status
     )
     db.add(new_bid)
     db.commit()
+    tag = "FPO बिक्री प्रस्ताव" if user.get("role") == "FPO" else "खरीदार मांग बोली"
     return {
         "status": "SUCCESS",
-        "message": f"Target bid #{bid_id} listed on Open Board for {bid.commodity} ({bid.target_qty_qtl} qtl @ ₹{bid.target_bid_price_per_qtl}/qtl)",
+        "message": f"{tag} #{bid_id} listed on Open Board for {bid.commodity} ({bid.target_qty_qtl} qtl @ ₹{bid.target_bid_price_per_qtl}/qtl)",
         "bid": {
             "bid_id": new_bid.bid_id,
             "commodity": new_bid.commodity,
-            "target_bid_price_per_qtl": new_bid.target_bid_price_per_qtl
+            "target_bid_price_per_qtl": new_bid.target_bid_price_per_qtl,
+            "status": new_bid.status
         }
     }
 
@@ -953,12 +956,12 @@ def get_live_buyer_bids(db: Session = Depends(get_db)):
     } for b in bids]
 
 @app.post("/api/v1/bids/{bid_id}/accept")
-def accept_buyer_bid(bid_id: str, user: dict = Depends(RoleChecker(["FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
+def accept_buyer_bid(bid_id: str, user: dict = Depends(RoleChecker(["FPO", "BUYER", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
     with db.begin():
         bid = db.query(models.BuyerBid).filter(models.BuyerBid.bid_id == bid_id).first()
         if not bid:
             raise HTTPException(status_code=404, detail="Bid not found")
-        if bid.status not in ["OPEN_AUCTION", "COUNTER_OFFERED"]:
+        if bid.status not in ["OPEN_AUCTION", "OPEN_FPO_OFFER", "COUNTER_OFFERED"]:
             raise HTTPException(status_code=400, detail=f"Bid cannot be accepted in '{bid.status}' state")
 
         bid.status = "ACCEPTED"
@@ -978,13 +981,23 @@ def accept_buyer_bid(bid_id: str, user: dict = Depends(RoleChecker(["FPO", "MAND
         )
         total_amt = comm_invoice["total_invoice"]
 
+        # Determine buyer and seller
+        if bid.status == "OPEN_FPO_OFFER" or "FPO" in bid.buyer_name:
+            final_buyer_name = user["name"]
+            final_buyer_id = user["id"]
+            final_buyer_phone = user["phone"]
+        else:
+            final_buyer_name = bid.buyer_name
+            final_buyer_id = bid.buyer_id
+            final_buyer_phone = bid.buyer_phone
+
         matched_order = models.Order(
             order_id=order_id,
             eway_bill_no=eway_bill,
             lot_id=f"AUC-MATCH-{bid.bid_id}",
-            buyer_id=bid.buyer_id,
-            buyer_name=bid.buyer_name,
-            buyer_phone=bid.buyer_phone,
+            buyer_id=final_buyer_id,
+            buyer_name=final_buyer_name,
+            buyer_phone=final_buyer_phone,
             delivery_address=f"Central Grain Terminal, {bid.delivery_city}",
             gstin="03AAAAA0000A1Z5",
             payment_method="ESCROW_UPI",
@@ -1009,7 +1022,7 @@ def accept_buyer_bid(bid_id: str, user: dict = Depends(RoleChecker(["FPO", "MAND
 
     return {
         "status": "SUCCESS",
-        "message": f"Bid #{bid_id} Accepted by {user['name']}. Matched Contract locked into Stage 1 Escrow!",
+        "message": f"Bid #{bid_id} accepted! Deal locked with 20% Advance Escrow.",
         "order": {
             "order_id": order_id,
             "eway_bill_no": eway_bill,
@@ -1019,7 +1032,7 @@ def accept_buyer_bid(bid_id: str, user: dict = Depends(RoleChecker(["FPO", "MAND
     }
 
 @app.post("/api/v1/bids/{bid_id}/counter")
-def counter_buyer_bid(bid_id: str, req: BidCounterRequest, user: dict = Depends(RoleChecker(["FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
+def counter_buyer_bid(bid_id: str, req: BidCounterRequest, user: dict = Depends(RoleChecker(["FPO", "BUYER", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
     with db.begin():
         bid = db.query(models.BuyerBid).filter(models.BuyerBid.bid_id == bid_id).first()
         if not bid:
@@ -1031,13 +1044,13 @@ def counter_buyer_bid(bid_id: str, req: BidCounterRequest, user: dict = Depends(
 
     return {
         "status": "SUCCESS",
-        "message": f"Counter offer of ₹{req.counter_price_per_qtl}/qtl submitted by {user['name']} to buyer {bid.buyer_name}.",
+        "message": f"Counter offer of ₹{req.counter_price_per_qtl}/qtl submitted by {user['name']}.",
         "bid_id": bid.bid_id,
         "counter_price_per_qtl": req.counter_price_per_qtl
     }
 
 @app.post("/api/v1/bids/{bid_id}/counter-accept")
-def accept_counter_offer(bid_id: str, user: dict = Depends(RoleChecker(["BUYER"])), db: Session = Depends(get_db)):
+def accept_counter_offer(bid_id: str, user: dict = Depends(RoleChecker(["BUYER", "FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
     with db.begin():
         bid = db.query(models.BuyerBid).filter(models.BuyerBid.bid_id == bid_id).first()
         if not bid:

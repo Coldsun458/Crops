@@ -64,6 +64,7 @@
       const [accounts, setAccounts] = useState([]);
       const [tab, setTab] = useState("calculator"); // calculator, bidding, escrow, passbook, compliance
       const [notification, setNotification] = useState(null);
+      const [showLoginModal, setShowLoginModal] = useState(false);
 
       const [commodity, setCommodity] = useState("Wheat");
       const [city, setCity] = useState("Delhi");
@@ -92,6 +93,9 @@
       const [counterNotes, setCounterNotes] = useState("100% शुद्ध ग्रेड-A माल, तुरंत रवानगी तैयार");
       const [deliveryAddress, setDeliveryAddress] = useState("आर्यन फूड्स एंड फ्लोर मिल्स, जी.टी. रोड, जालंधर, पंजाब");
       const [gstin, setGstin] = useState("03AAAAA1234A1Z5");
+
+      const isBuyer = currentUser?.role === "BUYER";
+      const isFPO = currentUser?.role === "FPO";
 
       const showToast = (msg) => {
         setNotification(msg);
@@ -142,10 +146,13 @@
         });
         if (res.ok) {
           const data = await res.json();
-          setToken(data.access_token);
-          localStorage.setItem("agri_jwt", data.access_token);
+          const jwt = data.token || data.access_token;
+          setToken(jwt);
+          localStorage.setItem("agri_jwt", jwt);
           setCurrentUser(data.user);
-          showToast(`सफलतापूर्वक लॉगिन: ${data.user.name} (${data.user.role})`);
+          setShowLoginModal(false);
+          const portalName = data.user.role === "BUYER" ? "🌾 खरीदार पोर्टल (Buyer Desk)" : "🚜 FPO / विक्रेता पोर्टल (Seller Desk)";
+          showToast(`सफलतापूर्वक लॉगिन: ${portalName} - ${data.user.name}`);
         }
       };
 
@@ -207,7 +214,8 @@
         e.preventDefault();
         const res = await apiFetch("/api/v1/bids/create", { method: "POST", body: JSON.stringify(bidForm) });
         if (res && res.ok) {
-          showToast("नई बोली दर्ज की गई!");
+          const d = await res.json();
+          showToast(d.message || "बोली / प्रस्ताव दर्ज किया गया!");
           setShowNewBidModal(false);
           refreshTradingData();
         }
@@ -217,7 +225,7 @@
         const res = await apiFetch(`/api/v1/bids/${bidId}/accept`, { method: "POST" });
         if (res && res.ok) {
           const d = await res.json();
-          showToast(`सौदा पक्का! ऑर्डर आईडी: ${d.order_id}`);
+          showToast(`सौदा पक्का! ऑर्डर आईडी: ${d.order?.order_id || 'तैयार'}`);
           refreshTradingData();
           setTab("escrow");
         }
@@ -231,7 +239,7 @@
           body: JSON.stringify({ counter_price_per_qtl: Number(counterPrice), counter_notes: counterNotes })
         });
         if (res && res.ok) {
-          showToast("पलट भाव भेजा गया");
+          showToast("पलट भाव भेजा गया!");
           setShowCounterModal(null);
           refreshTradingData();
         }
@@ -282,21 +290,18 @@
         }
       };
 
-      // Simple 1-Click Dispatch -> Releases 70% Stage 2 Escrow
       const handleDispatchOrder = async (orderId) => {
         const res = await apiFetch(`/api/v1/orders/${orderId}/dispatch`, { method: "POST" });
         if (res && res.ok) {
           const d = await res.json();
-          showToast(`गाड़ी रवाना! 70% अमानत FPO को जारी की गई (₹${d.released_dispatch_70?.toLocaleString('en-IN')})`);
+          showToast(`गाड़ी रवाना! 70% अमानत FPO को जारी (₹${d.released_dispatch_70?.toLocaleString('en-IN')})`);
           refreshTradingData();
         }
       };
 
-      // Simple 1-Click Delivery -> Releases 10% Stage 3 Escrow
       const handleDeliverOrder = async (orderId) => {
         const res = await apiFetch(`/api/v1/orders/${orderId}/deliver`, { method: "POST" });
         if (res && res.ok) {
-          const d = await res.json();
           showToast(`माल प्राप्ति सत्यापित! अंतिम 10% अमानत जारी (सौदा पूर्ण)`);
           refreshTradingData();
         }
@@ -330,24 +335,32 @@
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 bg-[#0a3323] p-1.5 rounded-lg border border-[#1d5c3f]">
-                <span className="text-xs text-amber-300 font-semibold pl-2 hidden md:inline">व्यापारी प्रोफाइल:</span>
-                <select
-                  value={currentUser?.email || ""}
-                  onChange={(e) => loginPersona(e.target.value)}
-                  className="bg-[#062418] text-amber-200 text-xs font-semibold py-1.5 px-3 rounded border border-emerald-700/60 focus:outline-none focus:border-amber-400 cursor-pointer"
+              {/* Two Distinct Portals / Switcher */}
+              <div className="flex items-center space-x-2">
+                {/* Active Portal Badge */}
+                <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border shadow ${
+                  isBuyer ? 'bg-amber-950/80 border-amber-500 text-amber-300' :
+                  isFPO ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' :
+                  'bg-stone-900 border-stone-600 text-stone-300'
+                }`}>
+                  <span className="text-sm">{isBuyer ? '🌾' : '🚜'}</span>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                      {isBuyer ? 'खरीदार पोर्टल (Buyer Desk)' : isFPO ? 'विक्रेता / FPO पोर्टल (Seller Desk)' : 'प्रशासक'}
+                    </div>
+                    <div className="text-xs font-black truncate max-w-[160px] sm:max-w-none">
+                      {currentUser?.name || 'अतिथि'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Portal Switch Button */}
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="px-3 py-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded-lg shadow-lg transition flex items-center space-x-1"
                 >
-                  {accounts.map(acc => (
-                    <option key={acc.email} value={acc.email}>
-                      {acc.role === "BUYER" ? "🌾" : acc.role === "FPO" ? "🚜" : acc.role === "TRANSPORTER" ? "🚚" : "🏛️"} {acc.name} ({acc.city})
-                    </option>
-                  ))}
-                </select>
-                {currentUser && (
-                  <span className="text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">
-                    {currentUser.role}
-                  </span>
-                )}
+                  <span>🔄 पोर्टल बदलें</span>
+                </button>
               </div>
             </div>
 
@@ -372,11 +385,11 @@
               </div>
             </div>
 
-            {/* 5 Main Navigation Tabs - NO WEIGHBRIDGE/CUTTER */}
+            {/* Navigation Tabs */}
             <div className="max-w-7xl mx-auto px-4 flex space-x-1 sm:space-x-3 overflow-x-auto custom-scroll pt-2">
               {[
                 { id: "calculator", label: "मंडी भाव व लागत (Landed Bhao)", icon: "🌾" },
-                { id: "bidding", label: "बोली व सौदा (Live Bids)", icon: "⚖️", count: bids.length },
+                { id: "bidding", label: "बोली व सौदा कक्ष (Live Bidding)", icon: "⚖️", count: bids.length },
                 { id: "escrow", label: "व्यापार सौदे व भुगतान (Orders & Escrow)", icon: "📋", count: orders.length },
                 { id: "passbook", label: "किसान बही खाता (Farmer Passbook)", icon: "👨‍🌾" },
                 { id: "compliance", label: "सरकारी दस्तावेज़ (M-Form & EWB)", icon: "📜" }
@@ -667,49 +680,58 @@
               </div>
             )}
 
-            {/* TAB 2: LIVE BIDS & DOUBLE AUCTION */}
+            {/* TAB 2: LIVE BIDS & DOUBLE AUCTION (BOTH BUYERS & FPOS CAN BID) */}
             {tab === "bidding" && (
               <div className="space-y-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
                   <div>
                     <h2 className="text-lg font-bold text-amber-300 flex items-center">
-                      <span className="mr-2">⚖️</span> लाइव बोली व सौदा कक्ष (Live Bidding & Auctions)
+                      <span className="mr-2">⚖️</span> 2-तरफा लाइव बोली व सौदा कक्ष (Two-Way Double Auction)
                     </h2>
                     <p className="text-xs text-stone-300">
-                      खरीदार अपनी मांग व लक्ष्य भाव की बोली लगाते हैं; FPO स्वीकार कर सकते हैं या पलट भाव दे सकते हैं।
+                      {isBuyer 
+                        ? "खरीदार पोर्टल: नई मांग बोली लगाएं, या FPO द्वारा लगाए गए बिक्री प्रस्तावों को तुरंत स्वीकार करें।"
+                        : "FPO / विक्रेता पोर्टल: नया बिक्री प्रस्ताव दर्ज करें, या खरीदारों की खुली बोलियों पर सौदा पक्का करें / पलट भाव दें।"}
                     </p>
                   </div>
+                  
+                  {/* Action Button depends on logged-in role */}
                   <button
                     onClick={() => setShowNewBidModal(true)}
-                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg text-xs shadow-lg transition flex items-center space-x-1"
+                    className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg text-xs shadow-lg transition flex items-center space-x-1"
                   >
-                    <span>+ नई बोली लगाएं (Place Buyer Bid)</span>
+                    <span>{isBuyer ? "+ नई खरीदार मांग बोली लगाएं (+ Buy Demand)" : "+ नया FPO बिक्री प्रस्ताव लगाएं (+ FPO Sell Offer)"}</span>
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {bids.map(bid => {
-                    const isOpen = bid.status === "OPEN_AUCTION";
+                    const isFpoOffer = bid.status === "OPEN_FPO_OFFER" || bid.buyer_name?.includes("FPO") || bid.buyer_name?.includes("Guild") || bid.buyer_name?.includes("Producers");
+                    const isBuyerDemand = bid.status === "OPEN_AUCTION" && !isFpoOffer;
                     const isCounter = bid.status === "COUNTER_OFFERED";
                     const isLocked = bid.status === "ACCEPTED" || bid.status === "TRADE_LOCKED";
 
                     return (
-                      <div key={bid.bid_id} className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] p-4 space-y-3 shadow-xl flex flex-col justify-between">
+                      <div key={bid.bid_id} className={`rounded-xl border p-4 space-y-3 shadow-xl flex flex-col justify-between ${
+                        isFpoOffer ? 'bg-[#093522] border-emerald-500/60' : 'bg-[#092c1d] border-[#1b5d3f]'
+                      }`}>
                         <div>
                           <div className="flex items-center justify-between">
                             <span className="font-mono text-xs font-bold text-amber-300">{bid.bid_id}</span>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              isOpen ? 'bg-blue-900/80 text-blue-300 border border-blue-600' :
-                              isCounter ? 'bg-amber-900/80 text-amber-300 border border-amber-600 animate-pulse' :
-                              'bg-emerald-900/80 text-emerald-300 border border-emerald-600'
+                              isFpoOffer ? 'bg-emerald-900/90 text-emerald-300 border border-emerald-500' :
+                              isBuyerDemand ? 'bg-blue-900/90 text-blue-300 border border-blue-500' :
+                              isCounter ? 'bg-amber-900/90 text-amber-300 border border-amber-500 animate-pulse' :
+                              'bg-stone-800 text-stone-300 border border-stone-600'
                             }`}>
-                              {isOpen ? "खुलती बोली (OPEN)" : isCounter ? "पलट भाव (COUNTER)" : "सौदा पक्का (LOCKED)"}
+                              {isFpoOffer ? "🟢 FPO बिक्री प्रस्ताव" : isBuyerDemand ? "🔵 खरीदार मांग बोली" : isCounter ? "🔄 पलट भाव" : "✓ सौदा पक्का"}
                             </span>
                           </div>
 
                           <div className="mt-2">
+                            <div className="text-xs text-stone-400 font-semibold">{isFpoOffer ? 'विक्रेता (Seller / FPO):' : 'खरीदार (Buyer):'}</div>
                             <div className="text-sm font-bold text-white">{bid.buyer_name}</div>
-                            <div className="text-xs text-stone-400">गंतव्य: {bid.delivery_city}</div>
+                            <div className="text-xs text-stone-400">स्थान / मंडी: {bid.delivery_city}</div>
                           </div>
 
                           <div className="bg-[#051c13] p-2.5 rounded-lg border border-[#164d34] my-2 text-xs font-mono space-y-1">
@@ -718,18 +740,18 @@
                               <span className="font-bold text-white">{bid.commodity}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-stone-400">मांग:</span>
+                              <span className="text-stone-400">मात्रा:</span>
                               <span className="font-bold text-white">{bid.target_qty_qtl} क्विंटल</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-stone-400">खरीदार लक्ष्य भाव:</span>
+                              <span className="text-stone-400">{isFpoOffer ? 'मांगा गया भाव:' : 'लक्ष्य बोली भाव:'}</span>
                               <span className="font-black text-amber-300">₹{bid.target_bid_price_per_qtl} / qtl</span>
                             </div>
 
                             {isCounter && (
                               <div className="pt-1.5 border-t border-[#164d34] text-amber-300">
                                 <div className="flex justify-between font-bold">
-                                  <span>FPO पलट भाव:</span>
+                                  <span>पलट भाव ({bid.counter_fpo_name || 'विपक्षी'}):</span>
                                   <span>₹{bid.counter_price_per_qtl} / qtl</span>
                                 </div>
                                 <div className="text-[10px] text-stone-300 italic mt-0.5">
@@ -740,14 +762,37 @@
                           </div>
                         </div>
 
+                        {/* Action Buttons based on User Role */}
                         <div className="pt-2 border-t border-[#164d34] flex items-center space-x-2">
-                          {isOpen && (
+                          {/* FPO Sell Offer: Buyer can accept or counter */}
+                          {isFpoOffer && (
                             <>
                               <button
                                 onClick={() => handleAcceptBid(bid.bid_id)}
                                 className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded transition"
                               >
-                                ✓ सौदा मंजूर
+                                {isBuyer ? "✓ यह भाव स्वीकारें (Buy Now)" : "✓ सौदा मंजूर"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowCounterModal(bid);
+                                  setCounterPrice(bid.target_bid_price_per_qtl - 30);
+                                }}
+                                className="py-1.5 px-3 bg-[#134931] hover:bg-[#1a5d3e] text-amber-300 font-bold text-xs rounded border border-amber-500/40 transition"
+                              >
+                                काउंटर दें
+                              </button>
+                            </>
+                          )}
+
+                          {/* Buyer Buy Demand: FPO can accept or counter */}
+                          {isBuyerDemand && (
+                            <>
+                              <button
+                                onClick={() => handleAcceptBid(bid.bid_id)}
+                                className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded transition"
+                              >
+                                {isFPO ? "✓ सौदा मंजूर करें (Sell at ₹" + bid.target_bid_price_per_qtl + ")" : "✓ सौदा मंजूर"}
                               </button>
                               <button
                                 onClick={() => {
@@ -783,7 +828,7 @@
               </div>
             )}
 
-            {/* TAB 3: ORDERS & 3-STAGE ESCROW (SIMPLIFIED - NO WEIGHBRIDGE/CUTTER) */}
+            {/* TAB 3: ORDERS & 3-STAGE ESCROW */}
             {tab === "escrow" && (
               <div className="space-y-6">
                 <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
@@ -1040,6 +1085,87 @@
             )}
           </main>
 
+          {/* TWO DEDICATED LOGIN PORTALS MODAL */}
+          {showLoginModal && (
+            <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-xl w-full p-6 space-y-5 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <div>
+                    <h3 className="text-lg font-black text-amber-300">🔐 व्यापार पोर्टल चयन (Choose Login Portal)</h3>
+                    <p className="text-xs text-stone-300">खरीदार (Buyer/Miller) या विक्रेता (Seller/FPO) के रूप में लॉगिन करें</p>
+                  </div>
+                  <button onClick={() => setShowLoginModal(false)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Buyer Portal Card */}
+                  <div className="bg-[#051c13] rounded-xl border-2 border-amber-500/80 p-4 space-y-3 flex flex-col justify-between hover:border-amber-400 transition">
+                    <div>
+                      <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm">
+                        <span className="text-2xl">🌾</span>
+                        <span>खरीदार पोर्टल (BUYER DESK)</span>
+                      </div>
+                      <p className="text-[11px] text-stone-400 mt-1">
+                        फ्लोर मिलर्स, फूड प्रोसेसर्स व थोक व्यापारियों के लिए: शुद्ध लैंडेड भाव देखें, मांग बोली लगाएं व सीधे माल खरीदें।
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-[#164d34]">
+                      <div className="text-[11px] text-stone-300 font-semibold">उपलब्ध खरीदार खाते:</div>
+                      {accounts.filter(a => a.role === "BUYER").map(b => (
+                        <button
+                          key={b.email}
+                          onClick={() => loginPersona(b.email)}
+                          className="w-full text-left p-2 rounded bg-[#0b3323] hover:bg-[#124b34] text-xs font-bold text-amber-200 border border-emerald-700/60 transition flex items-center justify-between"
+                        >
+                          <div>
+                            <div>{b.name}</div>
+                            <div className="text-[10px] text-stone-400 font-normal">{b.city}</div>
+                          </div>
+                          <span className="text-amber-400 text-xs">लॉगिन →</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Seller / FPO Portal Card */}
+                  <div className="bg-[#051c13] rounded-xl border-2 border-emerald-500/80 p-4 space-y-3 flex flex-col justify-between hover:border-emerald-400 transition">
+                    <div>
+                      <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                        <span className="text-2xl">🚜</span>
+                        <span>विक्रेता / FPO पोर्टल (SELLER DESK)</span>
+                      </div>
+                      <p className="text-[11px] text-stone-400 mt-1">
+                        किसान उत्पादक संगठन (FPOs) व आढ़तियों के लिए: बिक्री बोली / प्रस्ताव लगाएं, खरीदार बोलियां स्वीकारें व किसान खाता देखें।
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-[#164d34]">
+                      <div className="text-[11px] text-stone-300 font-semibold">उपलब्ध विक्रेता FPO खाते:</div>
+                      {accounts.filter(a => a.role === "FPO").map(f => (
+                        <button
+                          key={f.email}
+                          onClick={() => loginPersona(f.email)}
+                          className="w-full text-left p-2 rounded bg-[#0b3323] hover:bg-[#124b34] text-xs font-bold text-emerald-200 border border-emerald-700/60 transition flex items-center justify-between"
+                        >
+                          <div>
+                            <div>{f.name}</div>
+                            <div className="text-[10px] text-stone-400 font-normal">{f.city} मंडी</div>
+                          </div>
+                          <span className="text-emerald-400 text-xs">लॉगिन →</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 text-center text-[11px] text-stone-400">
+                  वर्तमान में सक्रिय: <b className="text-white">{currentUser?.name}</b> ({currentUser?.role})
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* BUY MODAL */}
           {showBuyModal && (
             <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
@@ -1171,18 +1297,25 @@
             </div>
           )}
 
-          {/* NEW BID MODAL */}
+          {/* NEW BID / FPO SELL OFFER MODAL (ADAPTS TO BUYER VS FPO) */}
           {showNewBidModal && (
             <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
               <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
                 <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <h3 className="text-base font-bold text-amber-300">+ नई बोली दर्ज करें (Submit Bid)</h3>
+                  <div>
+                    <h3 className="text-base font-bold text-amber-300">
+                      {isFPO ? "🌾 नया FPO बिक्री प्रस्ताव दर्ज करें (Post Sell Offer)" : "+ नई खरीदार मांग बोली दर्ज करें (Post Buy Demand)"}
+                    </h3>
+                    <p className="text-[11px] text-stone-300">
+                      {isFPO ? `FPO: ${currentUser?.name}` : `खरीदार: ${currentUser?.name}`}
+                    </p>
+                  </div>
                   <button onClick={() => setShowNewBidModal(false)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
                 </div>
 
                 <form onSubmit={handleCreateBid} className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-stone-300 mb-1">अनाज:</label>
+                    <label className="block text-stone-300 mb-1">अनाज (Commodity):</label>
                     <select
                       value={bidForm.commodity}
                       onChange={e => setBidForm({ ...bidForm, commodity: e.target.value })}
@@ -1192,7 +1325,7 @@
                     </select>
                   </div>
                   <div>
-                    <label className="block text-stone-300 mb-1">मात्रा (क्विंटल):</label>
+                    <label className="block text-stone-300 mb-1">{isFPO ? 'बिक्री हेतु उपलब्ध मात्रा (क्विंटल):' : 'आवश्यक मात्रा (क्विंटल):'}</label>
                     <input
                       type="number"
                       value={bidForm.target_qty_qtl}
@@ -1202,7 +1335,7 @@
                     />
                   </div>
                   <div>
-                    <label className="block text-stone-300 mb-1">लक्ष्य भाव (₹/क्विंटल):</label>
+                    <label className="block text-stone-300 mb-1">{isFPO ? 'मांग भाव / Ask Price (₹/क्विंटल):' : 'लक्ष्य खरीद भाव / Target Price (₹/क्विंटल):'}</label>
                     <input
                       type="number"
                       value={bidForm.target_bid_price_per_qtl}
@@ -1212,7 +1345,7 @@
                     />
                   </div>
                   <div>
-                    <label className="block text-stone-300 mb-1">डिलिवरी शहर:</label>
+                    <label className="block text-stone-300 mb-1">{isFPO ? 'उत्पत्ति मंडी / स्थान:' : 'गंतव्य शहर (डिलिवरी):'}</label>
                     <select
                       value={bidForm.delivery_city}
                       onChange={e => setBidForm({ ...bidForm, delivery_city: e.target.value })}
@@ -1224,7 +1357,9 @@
 
                   <div className="flex space-x-3 pt-2">
                     <button type="button" onClick={() => setShowNewBidModal(false)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
-                    <button type="submit" className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">बोली लगाएं</button>
+                    <button type="submit" className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">
+                      {isFPO ? "बिक्री प्रस्ताव बोर्ड पर लगाएं" : "मांग बोली बोर्ड पर लगाएं"}
+                    </button>
                   </div>
                 </form>
               </div>
@@ -1243,7 +1378,7 @@
                 <form onSubmit={handleCounterBid} className="space-y-3 text-xs">
                   <div className="bg-[#051c13] p-2.5 rounded border border-[#164d34] font-mono">
                     <div>बोली आईडी: <b className="text-amber-300">{showCounterModal.bid_id}</b></div>
-                    <div>खरीदार भाव: <b>₹{showCounterModal.target_bid_price_per_qtl} / qtl</b></div>
+                    <div>सामने वाले का भाव: <b>₹{showCounterModal.target_bid_price_per_qtl} / qtl</b></div>
                   </div>
 
                   <div>
