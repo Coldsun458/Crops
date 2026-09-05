@@ -1,7 +1,8 @@
 import math
-import httpx
+import asyncio
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional
+import httpx
 
 MSP_BENCHMARKS = {
     "Wheat": 2425.0,
@@ -63,10 +64,42 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return round(r * c * 1.22, 1)
 
+async def fetch_road_matrix(origin_lat: float, origin_lon: float, dest_lat: float, dest_lon: float) -> dict:
+    """
+    Fetches real highway network driving distance and duration via OpenStreetMap/OSRM.
+    Falls back gracefully to calibrated Haversine distance on timeout or failure.
+    """
+    url = f"https://router.project-osrm.org/route/v1/driving/{origin_lon},{origin_lat};{dest_lon},{dest_lat}?overview=false"
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            res = await client.get(url)
+            if res.status_code == 200:
+                data = res.json()
+                if data.get("routes"):
+                    route = data["routes"][0]
+                    distance_km = round(route["distance"] / 1000.0, 1)
+                    # Commercial heavy truck pace adjustment (car duration * 1.32 factor)
+                    transit_hours = round((route["duration"] / 3600.0) * 1.32, 1)
+                    return {
+                        "distance_km": distance_km,
+                        "transit_hours": max(0.5, transit_hours),
+                        "routing_source": "OSRM_ROAD_NETWORK"
+                    }
+    except Exception:
+        pass
+
+    # Mathematical fallback
+    fallback_km = haversine_distance(origin_lat, origin_lon, dest_lat, dest_lon)
+    return {
+        "distance_km": fallback_km,
+        "transit_hours": round(fallback_km / 45.0, 1),
+        "routing_source": "HAVERSINE_ESTIMATION"
+    }
+
 async def fetch_live_weather(lat: float, lon: float) -> dict:
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,precipitation&hourly=precipitation_probability&forecast_days=1"
     try:
-        async with httpx.AsyncClient(timeout=3.5) as client:
+        async with httpx.AsyncClient(timeout=3.0) as client:
             res = await client.get(url)
             if res.status_code == 200:
                 data = res.json()
@@ -117,7 +150,6 @@ def calculate_commercial_invoice(
     total_invoice = round(crop_base_total + total_bagging_cost + freight_total + total_cess + tcs_tax + insurance_cost, 2)
     net_landed_cost_per_qtl = round(total_invoice / quantity_qtl, 2)
 
-    # Per-quintal component breakdown matching: Mandi Base + Packaging + Freight + APMC Cess + TCS + Transit Risk
     base_per_qtl = round(base_price_per_qtl, 2)
     bagging_per_qtl = round(bagging_rate, 2)
     freight_qtl = round(freight_per_qtl, 2)
@@ -173,7 +205,6 @@ async def calculate_best_buy(
             "fpo": item.get("fpo_name", "Regional FPO")
         })
 
-        # Intelligent corridor checkpoint selection
         origin_state = hub.get("state", "Punjab")
         if origin_state in ["Madhya Pradesh", "Maharashtra"] or buyer_city == "Mumbai":
             waypoint_key = "NH46_CENTRAL"
@@ -184,22 +215,32 @@ async def calculate_best_buy(
 
         waypoint_info = CORRIDOR_WAYPOINTS.get(waypoint_key, CORRIDOR_WAYPOINTS["NH44_NORTH"])
 
-        origin_weather = await fetch_live_weather(hub["lat"], hub["lon"])
-        waypoint_weather = await fetch_live_weather(waypoint_info["lat"], waypoint_info["lon"])
-        effective_rain_risk = max(origin_weather["rain_prob"], waypoint_weather["rain_prob"])
+        # Fetch route geometry and concurrent origin/waypoint weather in parallel
+        route_task = fetch_road_matrix(hub["lat"], hub["lon"], buyer_coords["lat"], buyer_coords["lon"])
+        origin_weather_task = fetch_live_weather(hub["lat"], hub["lon"])
+        waypoint_weather_task = fetch_live_weather(waypoint_info["lat"], waypoint_info["lon"])
 
-        distance_km = haversine_distance(
-            hub["lat"], hub["lon"], buyer_coords["lat"], buyer_coords["lon"]
+        route_res, origin_weather, waypoint_weather = await asyncio.gather(
+            route_task, origin_weather_task, waypoint_weather_task
         )
 
-        transit_hours = round(distance_km / 45.0, 1)
-        toll_estimate = round(distance_km * 0.85, 2)
-        freight_per_qtl = round((distance_km * 0.038) + 25.0 + (toll_estimate / 100), 2)
+        distance_km = route_res["distance_km"]
+        transit_hours = route_res["transit_hours"]
+        routing_source = route_res["routing_source"]
+
+        effective_rain_risk = max(origin_weather["rain_prob"], waypoint_weather["rain_prob"])
+
+        # Granular freight breakdown
+        toll_estimate_total = round(distance_km * 0.85, 2)
+        toll_per_qtl = round(toll_estimate_total / 100.0, 2)
+        fuel_distance_per_qtl = round(distance_km * 0.038, 2)
+        base_handling_per_qtl = 25.0
+        freight_per_qtl = round(fuel_distance_per_qtl + base_handling_per_qtl + toll_per_qtl, 2)
 
         bagging_type = item.get("bagging_type", "50KG_JUTE_GUNNY")
 
-        # Live Spoilage Risk Calculation incorporating precipitation risk along corridor, transit duration, and packaging
-        base_spoilage = 0.3  # base 0.3% natural transit shrinkage tolerance
+        # Spoilage risk calculation
+        base_spoilage = 0.3
         rain_hazard = effective_rain_risk * (10.0 if bagging_type == "BULK_LOOSE_TIPPER" else 2.5)
         duration_hazard = (transit_hours / 24.0) * 1.0
         spoilage_risk_pct = round(min(25.0, base_spoilage + rain_hazard + duration_hazard), 1)
@@ -211,7 +252,6 @@ async def calculate_best_buy(
         else:
             spoilage_alert = "SAFE: Clear weather transit corridor window."
 
-        # Calculate comprehensive commercial invoice
         comm_breakdown = calculate_commercial_invoice(
             base_price_per_qtl=item["base_price_per_qtl"],
             quantity_qtl=required_qty_qtl,
@@ -250,7 +290,14 @@ async def calculate_best_buy(
             **item,
             "distance_km": distance_km,
             "transit_hours": transit_hours,
+            "routing_source": routing_source,
             "freight_per_qtl": freight_per_qtl,
+            "freight_breakdown": {
+                "fuel_distance_per_qtl": fuel_distance_per_qtl,
+                "base_handling_per_qtl": base_handling_per_qtl,
+                "toll_share_per_qtl": toll_per_qtl,
+                "total_toll_trip_estimate": toll_estimate_total
+            },
             "origin_weather": origin_weather,
             "waypoint_weather": waypoint_weather,
             "waypoint_name": waypoint_info["name"],
