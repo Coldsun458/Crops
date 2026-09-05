@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AgriExchange Spot & Wholesaler Terminal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>body { -webkit-tap-highlight-color: transparent; }</style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased font-sans pb-20 md:pb-8 selection:bg-emerald-500 selection:text-black min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [currentUser, setCurrentUser] = useState(null);
+      const [token, setToken] = useState(localStorage.getItem("agri_jwt") || "");
+      const [accounts, setAccounts] = useState([]);
+      const [tab, setTab] = useState("buyer"); // "buyer", "auction", "fpo"
+
+      const [commodity, setCommodity] = useState("Wheat");
+      const [city, setCity] = useState("Jalandhar");
+      const [listings, setListings] = useState([]);
+      const [bestPick, setBestPick] = useState(null);
+      const [liveBids, setLiveBids] = useState([]);
+      const [notification, setNotification] = useState(null);
+
+      // Modals
+      const [selectedLot, setSelectedLot] = useState(null);
+      const [baggingType, setBaggingType] = useState("50KG_JUTE_GUNNY");
+      const [insuranceOpted, setInsuranceOpted] = useState(true);
+      const [sampleModalLot, setSampleModalLot] = useState(null);
+      const [settlementModal, setSettlementModal] = useState(false);
+      const [passbookLot, setPassbookLot] = useState(null);
+
+      // Forms
+      const [bidForm, setBidForm] = useState({ commodity: "Wheat", target_qty_qtl: 200, target_bid_price_per_qtl: 2450, delivery_city: "Jalandhar" });
+      const [settleForm, setSettleForm] = useState({
+        order_id: "",
+        gross_weight_qtl: 348.5,
+        tare_weight_qtl: 98.2,
+        tested_moisture_pct: 12.3,
+        tested_broken_pct: 1.2
+      });
+
+      const apiFetch = async (url, options = {}) => {
+        const headers = { "Content-Type": "application/json", ...options.headers };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401 || res.status === 403) {
+          const err = await res.json();
+          alert(`Access Blocked: ${err.detail}`);
+          return null;
+        }
+        return res;
+      };
+
+      const loadAccounts = async () => {
+        const res = await fetch("/api/v1/auth/accounts");
+        const data = await res.json();
+        setAccounts(data);
+        if (!token && data.length > 0) loginAs(data[0].email);
+      };
+
+      const loginAs = async (email) => {
+        const res = await fetch("/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.token) {
+          setToken(data.token);
+          setCurrentUser(data.user);
+          localStorage.setItem("agri_jwt", data.token);
+          setNotification(`Active Identity: ${data.user.name} (${data.user.role})`);
+          if (data.user.role === "FPO") setTab("fpo");
+          else setTab("buyer");
+        }
+      };
+
+      const fetchMarket = async () => {
+        const res = await apiFetch("/api/v1/recommendations", {
+          method: "POST",
+          body: JSON.stringify({ commodity, buyer_city: city, quantity_qtl: 100 })
+        });
+        if (res) {
+          const data = await res.json();
+          setListings(data.all_listings || []);
+          setBestPick(data.best_pick || null);
+        }
+      };
+
+      const fetchBids = async () => {
+        const res = await apiFetch("/api/v1/bids/live");
+        if (res) setLiveBids(await res.json());
+      };
+
+      useEffect(() => { loadAccounts(); }, []);
+      useEffect(() => {
+        if (token) {
+          if (tab === "buyer") fetchMarket();
+          if (tab === "auction") fetchBids();
+        }
+      }, [tab, commodity, city, token]);
+
+      // Sample Request
+      const handleRequestSample = async (lot) => {
+        const res = await apiFetch("/api/v1/commercial/request-sample", {
+          method: "POST",
+          body: JSON.stringify({ lot_id: lot.id, delivery_address: "Industrial Complex, Focal Point, Jalandhar" })
+        });
+        if (res) {
+          const data = await res.json();
+          setSampleModalLot(null);
+          setNotification(`${data.message}. Tracking: ${data.sample.courier_tracking_no}`);
+        }
+      };
+
+      // Execute Order
+      const handleExecuteBuy = async (e) => {
+        e.preventDefault();
+        const res = await apiFetch("/api/v1/orders/buy", {
+          method: "POST",
+          body: JSON.stringify({
+            lot_id: selectedLot.id,
+            delivery_address: "Industrial Focal Point, Phase-7, Jalandhar",
+            gstin: "03AAAAA0000A1Z5",
+            quantity_qtl: 100,
+            bagging_type: baggingType,
+            transit_insurance_opted: insuranceOpted
+          })
+        });
+        if (res) {
+          const data = await res.json();
+          setSelectedLot(null);
+          setNotification(`Order Confirmed! e-Way Bill: ${data.order.eway_bill_no}. Advance Escrow (20%) Locked.`);
+          fetchMarket();
+        }
+      };
+
+      // Destination Settle
+      const handleSettleCutter = async (e) => {
+        e.preventDefault();
+        const res = await apiFetch("/api/v1/commercial/weighbridge/destination-settle", {
+          method: "POST",
+          body: JSON.stringify(settleForm)
+        });
+        if (res) {
+          const data = await res.json();
+          setSettlementModal(false);
+          setNotification(`Audit Complete! Net Wt: ${data.settlement_audit.destination_net_qtl} qtl. Deductions: ₹${data.settlement_audit.total_deductions}. Final Released: ₹${data.settlement_audit.net_final_released_to_fpo}`);
+        }
+      };
+
+      // Post Bid
+      const handlePostBid = async (e) => {
+        e.preventDefault();
+        const res = await apiFetch("/api/v1/bids/create", { method: "POST", body: JSON.stringify(bidForm) });
+        if (res) {
+          setNotification("Purchase Bid Broadcasted to Regional FPOs!");
+          fetchBids();
+        }
+      };
+
+      // Accept Bid (FPO)
+      const handleAcceptBid = async (bidId) => {
+        const res = await apiFetch(`/api/v1/bids/${bidId}/accept`, { method: "POST" });
+        if (res) {
+          setNotification("Bid Matched and Contract Locked!");
+          fetchBids();
+        }
+      };
+
+      // Farmer Passbook
+      const openPassbook = async (lotId) => {
+        const res = await apiFetch(`/api/v1/fpo/farmer-passbook/${lotId}`);
+        if (res) setPassbookLot(await res.json());
+      };
+
+      return (
+        <div className="w-full flex flex-col min-h-screen">
+          {/* Identity Switcher Bar */}
+          <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between text-xs gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-mono">Simulate Persona:</span>
+              <div className="flex flex-wrap gap-1">
+                {accounts.map(acc => (
+                  <button
+                    key={acc.email}
+                    onClick={() => loginAs(acc.email)}
+                    className={`px-2 py-0.5 rounded font-mono text-[11px] transition ${
+                      currentUser?.email === acc.email ? 'bg-emerald-500 text-black font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}>
+                    {acc.role}: {acc.name.split(" ")[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {currentUser && (
+              <div className="text-slate-300 font-mono flex items-center gap-2">
+                <span>Active: <strong className="text-white">{currentUser.name}</strong></span>
+                <span className="bg-slate-800 px-2 py-0.5 rounded text-emerald-400 border border-slate-700">{currentUser.role}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Bar */}
+          <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 md:px-8 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-lg">🌾</div>
+              <div>
+                <h1 className="text-base font-bold text-white tracking-tight">AGRI-EXCHANGE <span className="text-xs text-emerald-400 font-mono">TRADE</span></h1>
+                <p className="text-[10px] text-slate-400">APMC Cess, Bardana Packaging & Cutter Quality Matrix</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center bg-slate-800/80 p-1 rounded-lg border border-slate-700 gap-1">
+                <button onClick={() => setTab("buyer")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'buyer' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  Wholesale Terminal
+                </button>
+                <button onClick={() => setTab("auction")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'auction' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  Double Auction
+                </button>
+                {currentUser?.role === "FPO" && (
+                  <button onClick={() => setTab("fpo")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'fpo' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                    FPO Operations
+                  </button>
+                )}
+              </div>
+
+              <button 
+                onClick={() => setSettlementModal(true)}
+                className="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-xs px-3 py-1.5 rounded-lg font-mono flex items-center gap-1.5 ml-2">
+                <span>⚖️</span> Weighbridge & Cutter
+              </button>
+            </div>
+          </header>
+
+          {notification && (
+            <div className="max-w-7xl mx-auto w-full px-4 md:px-8 mt-4">
+              <div className="p-3 bg-emerald-950 border border-emerald-500/60 rounded-xl flex items-center justify-between text-xs text-emerald-200 font-mono">
+                <span>⚡ {notification}</span>
+                <button onClick={() => setNotification(null)} className="text-emerald-400 underline ml-3 font-mono">Dismiss</button>
+              </div>
+            </div>
+          )}
+
+          {/* Main Deck */}
+          <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8 space-y-6">
+            {tab === "buyer" && (
+              <div className="space-y-4">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 items-center">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Target Commodity</label>
+                    <select value={commodity} onChange={(e)=>setCommodity(e.target.value)} className="bg-slate-800 border border-slate-700 text-xs rounded p-2 text-white">
+                      <option value="Wheat">Wheat (Gehu)</option>
+                      <option value="Rice">Rice (Chawal)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Receiving Warehouse</label>
+                    <select value={city} onChange={(e)=>setCity(e.target.value)} className="bg-slate-800 border border-slate-700 text-xs rounded p-2 text-white">
+                      <option value="Jalandhar">Jalandhar, Punjab</option>
+                      <option value="Delhi">Delhi NCR</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Spot Listings */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                  <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+                    <h3 className="font-bold text-sm text-slate-200">Wholesale Commercial Listings</h3>
+                    <span className="text-xs font-mono text-slate-400">{listings.length} Lots Available</span>
+                  </div>
+
+                  <div className="divide-y divide-slate-800">
+                    {listings.map(item => (
+                      <div key={item.id} className="p-5 flex flex-col lg:flex-row justify-between lg:items-center gap-4 hover:bg-slate-800/30 transition">
+                        <div className="space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-bold text-white">{item.mandi}</span>
+                            <span className="text-xs text-slate-400">({item.variety})</span>
+                            <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-mono px-2 py-0.5 rounded border border-emerald-500/30">
+                              {item.mform_document_hash}
+                            </span>
+                            <span className="text-[10px] bg-slate-800 text-slate-300 font-mono px-2 py-0.5 rounded">
+                              {item.bagging_type}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400">
+                            {item.fpo_name} • Moisture: <strong className="text-emerald-400">{item.moisture_percent}%</strong> • Stock: {item.available_qty_qtl} qtl
+                          </p>
+                          <div className="text-[11px] text-slate-400 font-mono flex gap-4 pt-1">
+                            <span>Mandi Base: ₹{item.base_price_per_qtl}/qtl</span>
+                            <span>APMC Cess (4%): ₹{item.commercial_breakdown?.apmc_cess_breakdown?.total_cess || 0}</span>
+                            <span>TCS Tax: ₹{item.commercial_breakdown?.tcs_tax || 0}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between lg:justify-end gap-6 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+                          <div className="text-right">
+                            <div className="text-xs text-slate-400">Net Landed / qtl</div>
+                            <div className="text-lg md:text-xl font-bold font-mono text-emerald-400">
+                              ₹{item.net_landed_cost_per_qtl}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => setSampleModalLot(item)}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded-lg font-mono">
+                              Request 1kg Sample
+                            </button>
+                            {currentUser?.role === "BUYER" ? (
+                              <button 
+                                onClick={() => setSelectedLot(item)}
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition">
+                                Escrow Buy (100 qtl)
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-500 bg-slate-800 px-2 py-1.5 rounded font-mono">Buyer Role Only</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === "auction" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-white">Post Purchase Bid</h3>
+                  {currentUser?.role === "BUYER" ? (
+                    <form onSubmit={handlePostBid} className="space-y-3">
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Target Rate (₹/qtl)</label>
+                        <input type="number" required value={bidForm.target_bid_price_per_qtl} onChange={(e)=>setBidForm({...bidForm, target_bid_price_per_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 text-xs rounded text-white font-mono"/>
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Target Volume (qtl)</label>
+                        <input type="number" required value={bidForm.target_qty_qtl} onChange={(e)=>setBidForm({...bidForm, target_qty_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 text-xs rounded text-white font-mono"/>
+                      </div>
+                      <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs">
+                        Post to Auction Board
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="p-4 bg-slate-950 rounded text-xs text-slate-500 text-center">Only registered Buyers can post bids.</div>
+                  )}
+                </div>
+
+                <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-white">Live Double-Auction Order Board</h3>
+                  {liveBids.map(bid => (
+                    <div key={bid.bid_id} className="bg-slate-950 p-3.5 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                      <div>
+                        <div className="font-bold text-white">{bid.buyer_name} ({bid.commodity})</div>
+                        <div className="text-slate-400">{bid.target_qty_qtl} qtl @ ₹{bid.target_bid_price_per_qtl}/qtl</div>
+                      </div>
+                      {currentUser?.role === "FPO" && bid.status === "OPEN_AUCTION" ? (
+                        <button onClick={() => handleAcceptBid(bid.bid_id)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded">
+                          Accept Contract (FPO)
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-[11px]">{bid.status}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tab === "fpo" && (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-base font-bold text-white">FPO Farmer Member Payout Allocations</h3>
+                <div className="space-y-2">
+                  {listings.map(l => (
+                    <div key={l.id} className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-bold text-white">{l.id} — {l.variety}</span>
+                        <span className="text-slate-400 block">{l.available_qty_qtl} qtl pooled</span>
+                      </div>
+                      <button onClick={() => openPassbook(l.id)} className="bg-slate-800 hover:bg-emerald-600 text-slate-200 px-3 py-1.5 rounded font-mono">
+                        View Member Ledger
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* Sample Courier Modal */}
+          {sampleModalLot && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-md w-full space-y-4">
+                <h3 className="font-bold text-base text-white">Request Pre-Purchase Sealed Sample (1 kg)</h3>
+                <p className="text-xs text-slate-400">
+                  A representative sample from Lot {sampleModalLot.id} ({sampleModalLot.variety}) will be sealed at Khanna mandi in a tamper-evident pouch and dispatched via express courier to your lab.
+                </p>
+                <div className="bg-slate-950 p-3 rounded font-mono text-xs space-y-1">
+                  <div className="flex justify-between"><span>Courier Fee:</span><span>₹450.00</span></div>
+                  <div className="flex justify-between text-emerald-400"><span>Reservation Window:</span><span>48 Hours Post-Delivery</span></div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleRequestSample(sampleModalLot)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs uppercase font-mono">
+                    Pay ₹450 & Dispatch
+                  </button>
+                  <button onClick={() => setSampleModalLot(null)} className="bg-slate-800 px-4 py-2 rounded text-xs text-slate-400">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Commercial Checkout Drawer */}
+          {selectedLot && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+                  <div>
+                    <h3 className="font-bold text-base text-white">{selectedLot.variety} ({selectedLot.commodity})</h3>
+                    <p className="text-xs text-slate-400">{selectedLot.fpo_name} • {selectedLot.mandi}</p>
+                  </div>
+                  <button onClick={() => setSelectedLot(null)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                <form onSubmit={handleExecuteBuy} className="space-y-4">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Select Packaging / Bagging Type (Bardana)</label>
+                    <select value={baggingType} onChange={(e)=>setBaggingType(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white">
+                      <option value="50KG_JUTE_GUNNY">50 kg New Jute Bags (B-Twill) [+₹65/qtl]</option>
+                      <option value="50KG_PP_BAG">50 kg HDPE Woven PP Bags [+₹28/qtl]</option>
+                      <option value="BULK_LOOSE_TIPPER">Bulk Tipper Loading (Loose Grain) [₹0]</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-slate-950 p-2.5 rounded border border-slate-800">
+                    <input type="checkbox" id="insure" checked={insuranceOpted} onChange={(e)=>setInsuranceOpted(e.target.checked)} className="accent-emerald-500"/>
+                    <label htmlFor="insure" className="text-xs text-slate-300">
+                      Add Comprehensive Marine / Transit Cargo Insurance (0.08% invoice value)
+                    </label>
+                  </div>
+
+                  <div className="bg-slate-950 border border-slate-800 p-3 rounded font-mono text-xs space-y-1.5">
+                    <div className="font-bold text-slate-300 font-sans pb-1 border-b border-slate-800">Itemized Commercial Breakdown (100 qtl)</div>
+                    <div className="flex justify-between text-slate-400"><span>Crop Base Value:</span><span>₹{(selectedLot.base_price_per_qtl * 100).toLocaleString()}</span></div>
+                    <div className="flex justify-between text-slate-400"><span>APMC Mandi Fee & RDF:</span><span>₹{selectedLot.commercial_breakdown?.apmc_cess_breakdown?.total_cess || 0}</span></div>
+                    <div className="flex justify-between text-slate-400"><span>B2B Statutory TCS Tax (0.1%):</span><span>₹{selectedLot.commercial_breakdown?.tcs_tax || 0}</span></div>
+                    <div className="flex justify-between text-emerald-400 font-bold border-t border-slate-800 pt-1">
+                      <span>Total Invoice Amount:</span>
+                      <span>₹{selectedLot.total_order_cost?.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider font-mono">
+                    Authorize Escrow & Lock Advance (20%)
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Weighbridge Double-Slip & Cutter Settlement Modal */}
+          {settlementModal && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4">
+                <div className="flex justify-between items-start border-b border-slate-800 pb-2">
+                  <div>
+                    <h3 className="font-bold text-base text-white">Weighbridge Reconciliation & Cutter Matrix</h3>
+                    <p className="text-xs text-slate-400">Execute destination net weight verification and penalty deductions.</p>
+                  </div>
+                  <button onClick={() => setSettlementModal(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                <form onSubmit={handleSettleCutter} className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-slate-400 block mb-1">Order Identifier</label>
+                    <input type="text" required placeholder="ORD-..." value={settleForm.order_id} onChange={(e)=>setSettleForm({...settleForm, order_id: e.target.value})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-slate-400 block mb-1">Destination Gross Wt (qtl)</label>
+                      <input type="number" step="0.1" required value={settleForm.gross_weight_qtl} onChange={(e)=>setSettleForm({...settleForm, gross_weight_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
+                    </div>
+                    <div>
+                      <label className="text-slate-400 block mb-1">Destination Tare Wt (qtl)</label>
+                      <input type="number" step="0.1" required value={settleForm.tare_weight_qtl} onChange={(e)=>setSettleForm({...settleForm, tare_weight_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-slate-400 block mb-1">Destination Tested Moisture %</label>
+                      <input type="number" step="0.1" required value={settleForm.tested_moisture_pct} onChange={(e)=>setSettleForm({...settleForm, tested_moisture_pct: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
+                    </div>
+                    <div>
+                      <label className="text-slate-400 block mb-1">Tested Broken Grains %</label>
+                      <input type="number" step="0.1" required value={settleForm.tested_broken_pct} onChange={(e)=>setSettleForm({...settleForm, tested_broken_pct: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950 p-2.5 rounded border border-slate-800 text-[11px] font-mono text-slate-400">
+                    Formula: Net Wt = Gross - Tare. Shrinkage tolerance: 0.3%. Moisture penalty applies if &gt; 11.5%.
+                  </div>
+
+                  <button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl font-mono uppercase tracking-wider">
+                    Audit Slip & Release Settled Escrow
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Passbook Modal */}
+          {passbookLot && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 max-w-md w-full space-y-3 text-xs">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h4 className="font-bold text-white">Farmer Member Payout Ledger</h4>
+                  <button onClick={() => setPassbookLot(null)}>✕</button>
+                </div>
+                {passbookLot.farmers.map(f => (
+                  <div key={f.member_id} className="flex justify-between bg-slate-950 p-2 rounded">
+                    <span>{f.name} ({f.pool_qty_qtl} qtl)</span>
+                    <strong className="text-emerald-400 font-mono">₹{(f.pool_qty_qtl * passbookLot.rate_per_qtl).toLocaleString()}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>

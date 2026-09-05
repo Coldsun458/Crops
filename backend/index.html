@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AgriExchange RBAC Terminal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>body { -webkit-tap-highlight-color: transparent; }</style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased font-sans pb-20 md:pb-8 selection:bg-emerald-500 selection:text-black min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [currentUser, setCurrentUser] = useState(null);
+      const [token, setToken] = useState(localStorage.getItem("agri_jwt") || "");
+      const [accounts, setAccounts] = useState([]);
+      const [tab, setTab] = useState("buyer");
+
+      const [commodity, setCommodity] = useState("Wheat");
+      const [city, setCity] = useState("Jalandhar");
+      const [listings, setListings] = useState([]);
+      const [bestPick, setBestPick] = useState(null);
+      const [liveBids, setLiveBids] = useState([]);
+      const [activeSlots, setActiveSlots] = useState([]);
+      const [notification, setNotification] = useState(null);
+
+      // Modals
+      const [selectedLot, setSelectedLot] = useState(null);
+      const [passbookLot, setPassbookLot] = useState(null);
+      const [delayingSlot, setDelayingSlot] = useState(null);
+      const [delayMinutes, setDelayMinutes] = useState(30);
+
+      // Forms
+      const [bidForm, setBidForm] = useState({ commodity: "Wheat", target_qty_qtl: 200, target_bid_price_per_qtl: 2450, delivery_city: "Jalandhar" });
+      const [slotBookingForm, setSlotBookingForm] = useState({ mandi_hub: "Khanna, Punjab", truck_reg_number: "PB-10-XX-4412", commodity: "Wheat", quantity_qtl: 250, slot_date: "2026-09-08", window_key: "EARLY_MORNING" });
+      const [shutdownReason, setShutdownReason] = useState("APMC Flood Emergency");
+
+      const apiFetch = async (url, options = {}) => {
+        const headers = { "Content-Type": "application/json", ...options.headers };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401 || res.status === 403) {
+          const err = await res.json();
+          alert(`RBAC Access Blocked: ${err.detail}`);
+          return null;
+        }
+        return res;
+      };
+
+      const loadAccounts = async () => {
+        const res = await fetch("/api/v1/auth/accounts");
+        const data = await res.json();
+        setAccounts(data);
+        if (!token && data.length > 0) loginAs(data[0].email);
+      };
+
+      const loginAs = async (email) => {
+        const res = await fetch("/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.token) {
+          setToken(data.token);
+          setCurrentUser(data.user);
+          localStorage.setItem("agri_jwt", data.token);
+          setNotification(`Switched Identity: ${data.user.name} (${data.user.role})`);
+          // Route user automatically to their role's home view
+          if (data.user.role === "BUYER") setTab("buyer");
+          else if (data.user.role === "FPO") setTab("fpo");
+          else if (data.user.role === "MANDI_ADMIN" || data.user.role === "TRANSPORTER") setTab("slots");
+        }
+      };
+
+      const fetchMarket = async () => {
+        const res = await apiFetch("/api/v1/recommendations", {
+          method: "POST",
+          body: JSON.stringify({ commodity, buyer_city: city, quantity_qtl: 100 })
+        });
+        if (res) {
+          const data = await res.json();
+          setListings(data.all_listings || []);
+          setBestPick(data.best_pick || null);
+        }
+      };
+
+      const fetchSlots = async () => {
+        const res = await apiFetch("/api/v1/slots/active");
+        if (res) setActiveSlots(await res.json());
+      };
+
+      const fetchBids = async () => {
+        const res = await apiFetch("/api/v1/bids/live");
+        if (res) setLiveBids(await res.json());
+      };
+
+      useEffect(() => { loadAccounts(); }, []);
+      useEffect(() => {
+        if (tab === "buyer") fetchMarket();
+        if (tab === "slots") fetchSlots();
+        if (tab === "auction") fetchBids();
+      }, [tab, commodity, city, token]);
+
+      // Buyer Action: Place Order
+      const handleBuy = async (e) => {
+        e.preventDefault();
+        const res = await apiFetch("/api/v1/orders/buy", {
+          method: "POST",
+          body: JSON.stringify({
+            lot_id: selectedLot.id,
+            delivery_address: "Industrial Phase 7, Jalandhar",
+            gstin: "03AAAAA0000A1Z5",
+            quantity_qtl: 100,
+            agreed_landed_price: selectedLot.net_landed_cost_per_qtl
+          })
+        });
+        if (res) {
+          const data = await res.json();
+          setSelectedLot(null);
+          setNotification(`Order Confirmed! e-Way Bill: ${data.order.eway_bill_no}`);
+          fetchMarket();
+        }
+      };
+
+      // FPO Action: Accept Bid
+      const handleAcceptBid = async (bidId) => {
+        const res = await apiFetch(`/api/v1/bids/${bidId}/accept`, { method: "POST" });
+        if (res) {
+          setNotification(`Bid Matched and Contract Locked!`);
+          fetchBids();
+        }
+      };
+
+      // Transporter/Admin Action: Book Slot
+      const handleBookSlot = async (e) => {
+        e.preventDefault();
+        const res = await apiFetch("/api/v1/slots/book", {
+          method: "POST",
+          body: JSON.stringify(slotBookingForm)
+        });
+        if (res) {
+          const data = await res.json();
+          setNotification(`Slot Reserved: Token #${data.slot.token_number} (${data.slot.window_label})`);
+          fetchSlots();
+        }
+      };
+
+      // Admin Action: Cancel Entire Day
+      const handleShutdown = async () => {
+        if (!confirm("Are you sure you want to enforce emergency closure for this entire mandi date?")) return;
+        const res = await apiFetch("/api/v1/slots/cancel-entire-day", {
+          method: "POST",
+          body: JSON.stringify({
+            mandi_hub: "Khanna, Punjab",
+            target_date: "2026-09-08",
+            cancellation_reason: shutdownReason
+          })
+        });
+        if (res) {
+          const data = await res.json();
+          setNotification(data.message);
+          fetchSlots();
+        }
+      };
+
+      // Open Farmer Passbook
+      const openPassbook = async (lotId) => {
+        const res = await apiFetch(`/api/v1/fpo/farmer-passbook/${lotId}`);
+        if (res) setPassbookLot(await res.json());
+      };
+
+      return (
+        <div className="w-full flex flex-col min-h-screen">
+          {/* Identity Switcher Bar */}
+          <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between text-xs gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-mono">Simulate User Identity:</span>
+              <div className="flex flex-wrap gap-1">
+                {accounts.map(acc => (
+                  <button
+                    key={acc.email}
+                    onClick={() => loginAs(acc.email)}
+                    className={`px-2 py-0.5 rounded font-mono text-[11px] transition ${
+                      currentUser?.email === acc.email ? 'bg-emerald-500 text-black font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}>
+                    {acc.role}: {acc.name.split(" ")[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {currentUser && (
+              <div className="text-slate-300 font-mono flex items-center gap-2">
+                <span>Active: <strong className="text-white">{currentUser.name}</strong></span>
+                <span className="bg-slate-800 px-2 py-0.5 rounded text-emerald-400 border border-slate-700">{currentUser.role}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Bar */}
+          <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 md:px-8 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-lg">🌾</div>
+              <div>
+                <h1 className="text-base font-bold text-white tracking-tight">AGRI-EXCHANGE <span className="text-xs text-emerald-400 font-mono">RBAC</span></h1>
+                <p className="text-[10px] text-slate-400">Scoped Roles & Authorization Engine</p>
+              </div>
+            </div>
+
+            {/* Role-Sensitive Navigation Tabs */}
+            <div className="hidden md:flex items-center bg-slate-800/80 p-1 rounded-lg border border-slate-700 gap-1">
+              <button onClick={() => setTab("buyer")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'buyer' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                Wholesale Terminal
+              </button>
+              <button onClick={() => setTab("slots")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'slots' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                Timeslots & Queue
+              </button>
+              <button onClick={() => setTab("auction")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'auction' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                Double Auction
+              </button>
+              {/* Reveal FPO Tab only if user has FPO or Mandi Admin privileges */}
+              {(currentUser?.role === "FPO" || currentUser?.role === "MANDI_ADMIN") && (
+                <button onClick={() => setTab("fpo")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'fpo' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  FPO Operations
+                </button>
+              )}
+            </div>
+          </header>
+
+          {notification && (
+            <div className="max-w-7xl mx-auto w-full px-4 md:px-8 mt-4">
+              <div className="p-3 bg-emerald-950 border border-emerald-500/60 rounded-xl flex items-center justify-between text-xs text-emerald-200">
+                <span>⚡ {notification}</span>
+                <button onClick={() => setNotification(null)} className="text-emerald-400 underline ml-3 font-mono">Dismiss</button>
+              </div>
+            </div>
+          )}
+
+          {/* Main Workspaces */}
+          <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8 space-y-6">
+            {/* 1. BUYER TERMINAL VIEW */}
+            {tab === "buyer" && (
+              <div className="space-y-4">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Crop</label>
+                    <select value={commodity} onChange={(e)=>setCommodity(e.target.value)} className="bg-slate-800 border border-slate-700 text-xs rounded p-2 text-white">
+                      <option value="Wheat">Wheat</option>
+                      <option value="Rice">Rice</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Destination City</label>
+                    <select value={city} onChange={(e)=>setCity(e.target.value)} className="bg-slate-800 border border-slate-700 text-xs rounded p-2 text-white">
+                      <option value="Jalandhar">Jalandhar</option>
+                      <option value="Delhi">Delhi</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-950 text-slate-400 text-xs font-mono uppercase">
+                      <tr>
+                        <th className="p-4">Origin Mandi</th>
+                        <th className="p-4">Base Rate</th>
+                        <th className="p-4">Landed Cost / qtl</th>
+                        <th className="p-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 text-xs">
+                      {listings.map(item => (
+                        <tr key={item.id} className="hover:bg-slate-800/40">
+                          <td className="p-4">
+                            <div className="font-bold text-white">{item.mandi}</div>
+                            <div className="text-slate-400">{item.variety} • {item.fpo_name}</div>
+                          </td>
+                          <td className="p-4 font-mono font-medium">₹{item.base_price_per_qtl}</td>
+                          <td className="p-4 font-mono font-bold text-emerald-400">₹{item.net_landed_cost_per_qtl}</td>
+                          <td className="p-4 text-right">
+                            {currentUser?.role === "BUYER" ? (
+                              <button onClick={() => setSelectedLot(item)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded">
+                                Buy Now
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-500 font-mono bg-slate-800 px-2 py-1 rounded">Buyer Role Only</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 2. TIMESLOTS & QUEUE MANAGEMENT VIEW */}
+            {tab === "slots" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+                  <h3 className="text-base font-bold text-white">Book Unloading Timeslot</h3>
+                  <form onSubmit={handleBookSlot} className="space-y-3">
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Mandi Hub</label>
+                      <select value={slotBookingForm.mandi_hub} onChange={(e)=>setSlotBookingForm({...slotBookingForm, mandi_hub: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white">
+                        <option value="Khanna, Punjab">Khanna, Punjab</option>
+                        <option value="Karnal, Haryana">Karnal, Haryana</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Truck Reg No.</label>
+                      <input type="text" required value={slotBookingForm.truck_reg_number} onChange={(e)=>setSlotBookingForm({...slotBookingForm, truck_reg_number: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white font-mono uppercase"/>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Time Window</label>
+                      <select value={slotBookingForm.window_key} onChange={(e)=>setSlotBookingForm({...slotBookingForm, window_key: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white">
+                        <option value="EARLY_MORNING">Early Morning (03:00 AM - 09:00 AM)</option>
+                        <option value="LATE_MORNING_AFTERNOON">Late Morning (10:00 AM - 02:00 PM)</option>
+                        <option value="CLOSURE_EVENING">Closure (08:00 PM - 10:00 PM)</option>
+                      </select>
+                    </div>
+                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs uppercase">
+                      Confirm Booking
+                    </button>
+                  </form>
+
+                  {/* Mandi Admin Only: Emergency Shutdown Button */}
+                  {currentUser?.role === "MANDI_ADMIN" && (
+                    <div className="pt-4 border-t border-red-900/60 space-y-2">
+                      <span className="text-[11px] text-red-400 font-bold uppercase block">Mandi Admin Emergency Action</span>
+                      <button onClick={handleShutdown} className="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-2 rounded text-xs">
+                        Emergency Day Mandi Closure
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h3 className="text-base font-bold text-white">Active Weighbridge Queue</h3>
+                  <div className="space-y-2">
+                    {activeSlots.map(slot => (
+                      <div key={slot.slot_id} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                        <div>
+                          <div className="font-bold text-white">{slot.truck_reg_number} • Token #{slot.token_number}</div>
+                          <div className="text-slate-400">{slot.window_label} ({slot.slot_date}) - Booked by: {slot.booked_by}</div>
+                          {slot.delay_minutes > 0 && <span className="text-amber-400">Delayed: +{slot.delay_minutes} min</span>}
+                          {slot.status === 'CANCELLED' && <span className="text-red-400">CANCELLED</span>}
+                        </div>
+
+                        {/* Only FPO and Mandi Admin can delay slots */}
+                        {(currentUser?.role === "FPO" || currentUser?.role === "MANDI_ADMIN") && slot.status !== 'CANCELLED' && (
+                          <button onClick={() => setDelayingSlot(slot)} className="bg-amber-600 hover:bg-amber-500 text-white px-2 py-1 rounded text-[11px]">
+                            + Delay Slot
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. DOUBLE-AUCTION BOARD VIEW */}
+            {tab === "auction" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-white">Post Purchase Bid</h3>
+                  {currentUser?.role === "BUYER" ? (
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      await apiFetch("/api/v1/bids/create", { method: "POST", body: JSON.stringify(bidForm) });
+                      fetchBids();
+                    }} className="space-y-2">
+                      <input type="number" placeholder="Target Rate (₹/qtl)" value={bidForm.target_bid_price_per_qtl} onChange={(e)=>setBidForm({...bidForm, target_bid_price_per_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 text-xs rounded text-white"/>
+                      <input type="number" placeholder="Volume (qtl)" value={bidForm.target_qty_qtl} onChange={(e)=>setBidForm({...bidForm, target_qty_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 text-xs rounded text-white"/>
+                      <button type="submit" className="w-full bg-emerald-600 text-white font-bold py-2 rounded text-xs">Post Bid</button>
+                    </form>
+                  ) : (
+                    <div className="p-4 bg-slate-950 rounded text-xs text-slate-500 text-center">Only registered Buyers can post open bids.</div>
+                  )}
+                </div>
+
+                <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-white">Live Double-Auction Order Ladder</h3>
+                  {liveBids.map(bid => (
+                    <div key={bid.bid_id} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                      <div>
+                        <div className="font-bold text-white">{bid.buyer_name} ({bid.commodity})</div>
+                        <div className="text-slate-400">{bid.target_qty_qtl} qtl @ ₹{bid.target_bid_price_per_qtl}/qtl</div>
+                      </div>
+                      {currentUser?.role === "FPO" && bid.status === "OPEN_AUCTION" ? (
+                        <button onClick={() => handleAcceptBid(bid.bid_id)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded">
+                          Accept (FPO)
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-[11px]">{bid.status}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4. FPO ONLY OPERATIONS VIEW */}
+            {tab === "fpo" && (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-base font-bold text-white">FPO Farmer Member Passbook Allocations</h3>
+                <div className="space-y-2">
+                  {listings.map(l => (
+                    <div key={l.id} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-bold text-white">{l.id} — {l.variety}</span>
+                        <span className="text-slate-400 block">{l.available_qty_qtl} qtl total pool</span>
+                      </div>
+                      <button onClick={() => openPassbook(l.id)} className="bg-slate-800 hover:bg-emerald-600 text-slate-200 px-3 py-1 rounded">
+                        View Member Ledger
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* Passbook Modal */}
+          {passbookLot && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 max-w-md w-full space-y-3 text-xs">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h4 className="font-bold text-white">Farmer Member Payout Ledger</h4>
+                  <button onClick={() => setPassbookLot(null)}>✕</button>
+                </div>
+                {passbookLot.farmers.map(f => (
+                  <div key={f.member_id} className="flex justify-between bg-slate-950 p-2 rounded">
+                    <span>{f.name} ({f.pool_qty_qtl} qtl)</span>
+                    <strong className="text-emerald-400 font-mono">₹{(f.pool_qty_qtl * passbookLot.rate_per_qtl).toLocaleString()}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Buy Modal */}
+          {selectedLot && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 max-w-md w-full space-y-3 text-xs">
+                <h4 className="font-bold text-white">Confirm Escrow Order ({selectedLot.variety})</h4>
+                <div className="p-3 bg-slate-950 rounded font-mono space-y-1">
+                  <div>Rate: ₹{selectedLot.net_landed_cost_per_qtl} /qtl</div>
+                  <div>Advance (20%): ₹{(selectedLot.net_landed_cost_per_qtl * 20).toLocaleString()}</div>
+                </div>
+                <button onClick={handleBuy} className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-2 rounded">
+                  Authorize Advance Lock & Issue e-Way Bill
+                </button>
+                <button onClick={() => setSelectedLot(null)} className="w-full bg-slate-800 py-1.5 rounded text-slate-300">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
