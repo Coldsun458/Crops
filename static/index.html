@@ -62,7 +62,7 @@
       const [currentUser, setCurrentUser] = useState(null);
       const [token, setToken] = useState(localStorage.getItem("agri_jwt") || "");
       const [accounts, setAccounts] = useState([]);
-      const [tab, setTab] = useState("calculator");
+      const [tab, setTab] = useState("calculator"); // calculator, bidding, escrow, passbook, compliance
       const [notification, setNotification] = useState(null);
 
       const [commodity, setCommodity] = useState("Wheat");
@@ -85,8 +85,6 @@
       const [showBuyModal, setShowBuyModal] = useState(null);
       const [showSampleModal, setShowSampleModal] = useState(null);
       const [showAssayingModal, setShowAssayingModal] = useState(null);
-      const [showOriginWbModal, setShowOriginWbModal] = useState(null);
-      const [showDestWbModal, setShowDestWbModal] = useState(null);
       const [showEwayModal, setShowEwayModal] = useState(null);
 
       const [bidForm, setBidForm] = useState({ commodity: "Wheat", target_qty_qtl: 200, target_bid_price_per_qtl: 2470, delivery_city: "Delhi" });
@@ -94,8 +92,6 @@
       const [counterNotes, setCounterNotes] = useState("100% शुद्ध ग्रेड-A माल, तुरंत रवानगी तैयार");
       const [deliveryAddress, setDeliveryAddress] = useState("आर्यन फूड्स एंड फ्लोर मिल्स, जी.टी. रोड, जालंधर, पंजाब");
       const [gstin, setGstin] = useState("03AAAAA1234A1Z5");
-      const [originWb, setOriginWb] = useState({ gross_weight_qtl: 142.5, tare_weight_qtl: 42.5 });
-      const [destWb, setDestWb] = useState({ gross_weight_qtl: 142.1, tare_weight_qtl: 42.5, tested_moisture_pct: 12.5, tested_broken_pct: 1.5, tested_foreign_matter_pct: 0.5 });
 
       const showToast = (msg) => {
         setNotification(msg);
@@ -235,7 +231,7 @@
           body: JSON.stringify({ counter_price_per_qtl: Number(counterPrice), counter_notes: counterNotes })
         });
         if (res && res.ok) {
-          showToast("पलट भाव (Counter Offer) भेजा गया");
+          showToast("पलट भाव भेजा गया");
           setShowCounterModal(null);
           refreshTradingData();
         }
@@ -280,49 +276,28 @@
         });
         if (res && res.ok) {
           const d = await res.json();
-          showToast(`1 किग्रा सीलबंद नमूना रवाना! कूरियर ट्रैकिंग: ${d.sample_record.courier_tracking_no}`);
+          showToast(`1 किग्रा सीलबंद नमूना रवाना! कूरियर: ${d.sample_record.courier_tracking_no}`);
           setShowSampleModal(null);
           refreshTradingData();
         }
       };
 
-      const handleOriginWeighbridge = async (e) => {
-        e.preventDefault();
-        if (!showOriginWbModal) return;
-        const res = await apiFetch("/api/v1/commercial/weighbridge/origin-slip", {
-          method: "POST",
-          body: JSON.stringify({
-            order_id: showOriginWbModal.order_id,
-            gross_weight_qtl: Number(originWb.gross_weight_qtl),
-            tare_weight_qtl: Number(originWb.tare_weight_qtl)
-          })
-        });
+      // Simple 1-Click Dispatch -> Releases 70% Stage 2 Escrow
+      const handleDispatchOrder = async (orderId) => {
+        const res = await apiFetch(`/api/v1/orders/${orderId}/dispatch`, { method: "POST" });
         if (res && res.ok) {
           const d = await res.json();
-          showToast(`कांटा पर्ची दर्ज! 70% अमानत FPO को जारी (₹${d.released_dispatch_70.toLocaleString('en-IN')})`);
-          setShowOriginWbModal(null);
+          showToast(`गाड़ी रवाना! 70% अमानत FPO को जारी की गई (₹${d.released_dispatch_70?.toLocaleString('en-IN')})`);
           refreshTradingData();
         }
       };
 
-      const handleDestWeighbridge = async (e) => {
-        e.preventDefault();
-        if (!showDestWbModal) return;
-        const res = await apiFetch("/api/v1/commercial/weighbridge/destination-settle", {
-          method: "POST",
-          body: JSON.stringify({
-            order_id: showDestWbModal.order_id,
-            gross_weight_qtl: Number(destWb.gross_weight_qtl),
-            tare_weight_qtl: Number(destWb.tare_weight_qtl),
-            tested_moisture_pct: Number(destWb.tested_moisture_pct),
-            tested_broken_pct: Number(destWb.tested_broken_pct),
-            tested_foreign_matter_pct: Number(destWb.tested_foreign_matter_pct)
-          })
-        });
+      // Simple 1-Click Delivery -> Releases 10% Stage 3 Escrow
+      const handleDeliverOrder = async (orderId) => {
+        const res = await apiFetch(`/api/v1/orders/${orderId}/deliver`, { method: "POST" });
         if (res && res.ok) {
           const d = await res.json();
-          showToast(`अंतिम मिलान पूरा! जारी भुगतान: ₹${d.settlement.final_settled_payout.toLocaleString('en-IN')}`);
-          setShowDestWbModal(null);
+          showToast(`माल प्राप्ति सत्यापित! अंतिम 10% अमानत जारी (सौदा पूर्ण)`);
           refreshTradingData();
         }
       };
@@ -336,7 +311,6 @@
           <header className="bg-[#052418] border-b border-[#1b5e3f] sticky top-0 z-40 shadow-xl">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
               
-              {/* Brand & Mandi Identity */}
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-bold text-2xl shadow-lg border-2 border-amber-300">
                   🌾
@@ -356,7 +330,6 @@
                 </div>
               </div>
 
-              {/* Persona / Account Switcher */}
               <div className="flex items-center space-x-2 bg-[#0a3323] p-1.5 rounded-lg border border-[#1d5c3f]">
                 <span className="text-xs text-amber-300 font-semibold pl-2 hidden md:inline">व्यापारी प्रोफाइल:</span>
                 <select
@@ -393,19 +366,18 @@
                 <span>🌽 मक्का छिंदवाड़ा: <b className="text-white">₹2,240</b></span>
               </div>
               <div className="hidden lg:flex items-center space-x-4 text-stone-400">
-                <span>धर्म कांटा छूट: <b>0.30%</b></span>
-                <span>नमी कटौती मानक: <b>11.5%</b> (₹25/0.5%)</span>
+                <span>🔒 3-चरणीय सुरक्षित अमानत (20%-70%-10%)</span>
+                <span>📜 CGST E-Way Bill मान्य</span>
                 <span>TCS: <b>0.1%</b></span>
               </div>
             </div>
 
-            {/* Main Navigation Tabs */}
+            {/* 5 Main Navigation Tabs - NO WEIGHBRIDGE/CUTTER */}
             <div className="max-w-7xl mx-auto px-4 flex space-x-1 sm:space-x-3 overflow-x-auto custom-scroll pt-2">
               {[
                 { id: "calculator", label: "मंडी भाव व लागत (Landed Bhao)", icon: "🌾" },
                 { id: "bidding", label: "बोली व सौदा (Live Bids)", icon: "⚖️", count: bids.length },
-                { id: "escrow", label: "व्यापार सौदे व अमानत (3-Stage Escrow)", icon: "📋", count: orders.length },
-                { id: "weighbridge", label: "धर्म कांटा व कटी (Weighbridge & Cutter)", icon: "🚛" },
+                { id: "escrow", label: "व्यापार सौदे व भुगतान (Orders & Escrow)", icon: "📋", count: orders.length },
                 { id: "passbook", label: "किसान बही खाता (Farmer Passbook)", icon: "👨‍🌾" },
                 { id: "compliance", label: "सरकारी दस्तावेज़ (M-Form & EWB)", icon: "📜" }
               ].map(t => (
@@ -445,11 +417,10 @@
             {tab === "calculator" && (
               <div className="space-y-6">
                 
-                {/* Clean Filter Panel */}
                 <div className="bg-[#092c1d] p-4 sm:p-5 rounded-xl border border-[#1b5d3f] shadow-xl">
                   <div className="flex items-center justify-between mb-4 border-b border-[#174e35] pb-2">
                     <h2 className="text-base sm:text-lg font-bold text-amber-300 flex items-center">
-                      <span className="mr-2">🔍</span> शुद्ध लैंडेड भाव कैलकुलेटर (Dynamic Landed Bhao)
+                      <span className="mr-2">🔍</span> शुद्ध लैंडेड भाव कैलकुलेटर (Landed Bhao Calculator)
                     </h2>
                     <span className="text-xs text-stone-300">
                       मंडी भाव + बारदाना + गाड़ी भाड़ा + मंडी सेस + TCS + बीमा
@@ -638,7 +609,7 @@
                 <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] overflow-hidden shadow-xl">
                   <div className="p-4 border-b border-[#174e35] flex items-center justify-between">
                     <h3 className="text-base font-bold text-amber-300 flex items-center">
-                      <span className="mr-2">📊</span> सभी उपलब्ध मंडियों के भाव (All Mandi Spot & Landed Quotes)
+                      <span className="mr-2">📊</span> सभी उपलब्ध मंडियों के भाव (All Mandi Quotes)
                     </h3>
                     <span className="text-xs text-stone-300 font-mono">
                       कुल मंडियां: {allListings.length}
@@ -655,7 +626,6 @@
                           <th className="p-3">मंडी मूल भाव</th>
                           <th className="p-3">गाड़ी भाड़ा</th>
                           <th className="p-3">शुद्ध लैंडेड भाव</th>
-                          <th className="p-3">नमी %</th>
                           <th className="p-3 text-right">सौदा क्रिया</th>
                         </tr>
                       </thead>
@@ -672,11 +642,6 @@
                             <td className="p-3 text-stone-300">₹{lot.freight_per_qtl?.toFixed(2)}</td>
                             <td className="p-3 text-amber-400 font-black text-sm">
                               ₹{lot.net_landed_cost_per_qtl?.toLocaleString('en-IN')}
-                            </td>
-                            <td className="p-3">
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${lot.moisture_percent <= 11.5 ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'}`}>
-                                {lot.moisture_percent}%
-                              </span>
                             </td>
                             <td className="p-3 text-right space-x-2 font-sans">
                               <button
@@ -708,10 +673,10 @@
                 <div className="flex flex-wrap items-center justify-between gap-4 bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
                   <div>
                     <h2 className="text-lg font-bold text-amber-300 flex items-center">
-                      <span className="mr-2">⚖️</span> लाइव बोली व सौदा कक्ष (Double-Auction Bidding Desk)
+                      <span className="mr-2">⚖️</span> लाइव बोली व सौदा कक्ष (Live Bidding & Auctions)
                     </h2>
                     <p className="text-xs text-stone-300">
-                      खरीदार अपनी मांग व लक्ष्य भाव की बोली लगाते हैं; FPO स्वीकार कर सकते हैं या पलट भाव (Counter Offer) दे सकते हैं।
+                      खरीदार अपनी मांग व लक्ष्य भाव की बोली लगाते हैं; FPO स्वीकार कर सकते हैं या पलट भाव दे सकते हैं।
                     </p>
                   </div>
                   <button
@@ -749,11 +714,11 @@
 
                           <div className="bg-[#051c13] p-2.5 rounded-lg border border-[#164d34] my-2 text-xs font-mono space-y-1">
                             <div className="flex justify-between">
-                              <span className="text-stone-400">फसल:</span>
+                              <span className="text-stone-400">अनाज:</span>
                               <span className="font-bold text-white">{bid.commodity}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-stone-400">मांग मात्रा:</span>
+                              <span className="text-stone-400">मांग:</span>
                               <span className="font-bold text-white">{bid.target_qty_qtl} क्विंटल</span>
                             </div>
                             <div className="flex justify-between">
@@ -818,15 +783,15 @@
               </div>
             )}
 
-            {/* TAB 3: ORDERS & 3-STAGE ESCROW */}
+            {/* TAB 3: ORDERS & 3-STAGE ESCROW (SIMPLIFIED - NO WEIGHBRIDGE/CUTTER) */}
             {tab === "escrow" && (
               <div className="space-y-6">
                 <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
                   <h2 className="text-lg font-bold text-amber-300 flex items-center">
-                    <span className="mr-2">📋</span> सक्रिय व्यापार सौदे एवं 3-चरणीय सुरक्षित अमानत
+                    <span className="mr-2">📋</span> सक्रिय व्यापार सौदे एवं 3-चरणीय सुरक्षित भुगतान
                   </h2>
                   <p className="text-xs text-stone-300 mt-1">
-                    चरण 1: सौदा पक्का होते ही 20% अग्रिम लॉक • चरण 2: रवानगी कांटा पर्ची पर 70% जारी • चरण 3: गंतव्य कांटा व नमी मिलान पर 10% अंतिम निपटारा
+                    चरण 1: 20% अग्रिम लॉक (सौदा पुष्टि पर) • चरण 2: 70% गाड़ी रवानगी पर जारी • चरण 3: 10% माल प्राप्ति पर अंतिम भुगतान
                   </p>
                 </div>
 
@@ -834,8 +799,8 @@
                   {orders.map(order => {
                     const milestones = order.escrow_stages || {};
                     const isAdvLocked = order.status === "ADVANCE_ESCROW_LOCKED";
-                    const isDispatched = order.status === "DISPATCHED_70_RELEASED";
-                    const isSettled = order.status === "DELIVERED_AND_SETTLED";
+                    const isDispatched = order.status === "DISPATCHED_70_RELEASED" || order.status === "DISPATCH_70_RELEASED";
+                    const isSettled = order.status === "DELIVERED_AND_SETTLED" || order.status === "COMPLETED_AND_SETTLED";
 
                     return (
                       <div key={order.order_id} className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] p-5 shadow-xl space-y-4">
@@ -849,7 +814,7 @@
                             isDispatched ? 'bg-blue-900/80 text-blue-300 border border-blue-500' :
                             'bg-emerald-900/80 text-emerald-300 border border-emerald-500'
                           }`}>
-                            {isAdvLocked ? "चरण 1: 20% पेशगी लॉक" : isDispatched ? "चरण 2: 70% गाड़ी रवानगी जारी" : "चरण 3: अंतिम निपटारा पूर्ण"}
+                            {isAdvLocked ? "चरण 1: 20% पेशगी लॉक" : isDispatched ? "चरण 2: 70% गाड़ी रवानगी जारी" : "चरण 3: सौदा पूर्ण (100% भुगतान)"}
                           </span>
                         </div>
 
@@ -872,15 +837,18 @@
                           </div>
                         </div>
 
+                        {/* 3-Stage Visual Lifecycle */}
                         <div className="space-y-2">
-                          <div className="text-xs font-semibold text-stone-300">अमानत वितरण चरण (Escrow Lifecycle):</div>
+                          <div className="text-xs font-semibold text-stone-300">भुगतान चरण (3-Stage Milestone Tracking):</div>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
                             <div className={`p-3 rounded-lg border ${isAdvLocked || isDispatched || isSettled ? 'bg-[#0d3b27] border-emerald-500 text-emerald-200' : 'bg-[#051c13] border-[#164d34] text-stone-400'}`}>
                               <div className="font-bold flex items-center justify-between">
                                 <span>चरण 1: 20% अग्रिम</span>
                                 <span>✓</span>
                               </div>
-                              <div className="text-sm font-black text-amber-300 mt-1">₹{milestones.stage_1_advance_20?.amount?.toLocaleString('en-IN')}</div>
+                              <div className="text-sm font-black text-amber-300 mt-1">
+                                ₹{(milestones.stage_1_advance_20?.amount || (order.total_invoice_amount * 0.2))?.toLocaleString('en-IN')}
+                              </div>
                               <div className="text-[10px] text-stone-300">सौदा पुष्टि पर लॉक</div>
                             </div>
 
@@ -889,45 +857,48 @@
                                 <span>चरण 2: 70% रवानगी</span>
                                 <span>{isDispatched || isSettled ? "✓ जारी" : "प्रतीक्षारत"}</span>
                               </div>
-                              <div className="text-sm font-black text-amber-300 mt-1">₹{milestones.stage_2_dispatch_70?.amount?.toLocaleString('en-IN')}</div>
-                              <div className="text-[10px] text-stone-300">रवानगी कांटा पर्ची पर जारी</div>
+                              <div className="text-sm font-black text-amber-300 mt-1">
+                                ₹{(milestones.stage_2_dispatch_70?.amount || (order.total_invoice_amount * 0.7))?.toLocaleString('en-IN')}
+                              </div>
+                              <div className="text-[10px] text-stone-300">गाड़ी रवानगी पर जारी</div>
                             </div>
 
                             <div className={`p-3 rounded-lg border ${isSettled ? 'bg-[#0d3b27] border-emerald-500 text-emerald-200' : 'bg-[#051c13] border-[#164d34] text-stone-400'}`}>
                               <div className="font-bold flex items-center justify-between">
-                                <span>चरण 3: 10% निपटारा</span>
+                                <span>चरण 3: 10% अंतिम</span>
                                 <span>{isSettled ? "✓ पूरा" : "प्रतीक्षारत"}</span>
                               </div>
                               <div className="text-sm font-black text-amber-300 mt-1">
-                                ₹{(order.final_settled_payout ? (order.final_settled_payout - (milestones.stage_1_advance_20?.amount + milestones.stage_2_dispatch_70?.amount)) : milestones.stage_3_delivery_10?.amount)?.toLocaleString('en-IN')}
+                                ₹{(milestones.stage_3_delivery_10?.amount || (order.total_invoice_amount * 0.1))?.toLocaleString('en-IN')}
                               </div>
-                              <div className="text-[10px] text-stone-300">नमी व कांटा मिलान के बाद</div>
+                              <div className="text-[10px] text-stone-300">माल प्राप्ति पर पूर्ण</div>
                             </div>
                           </div>
                         </div>
 
+                        {/* 1-Click Simplified Order Actions */}
                         <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[#164d34]">
                           {isAdvLocked && (
                             <button
-                              onClick={() => setShowOriginWbModal(order)}
-                              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded shadow transition"
+                              onClick={() => handleDispatchOrder(order.order_id)}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg shadow-lg transition flex items-center space-x-1"
                             >
-                              🚛 रवानगी कांटा पर्ची अपलोड (Release 70%)
+                              <span>🚛 गाड़ी रवाना करें (Mark Dispatched - 70% जारी)</span>
                             </button>
                           )}
 
                           {isDispatched && (
                             <button
-                              onClick={() => setShowDestWbModal(order)}
-                              className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded shadow transition"
+                              onClick={() => handleDeliverOrder(order.order_id)}
+                              className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-lg shadow-lg transition flex items-center space-x-1"
                             >
-                              ⚖️ गंतव्य कांटा व नमी कटी मिलान (Final Settlement)
+                              <span>✓ माल प्राप्ति पुष्टि (Confirm Delivery - 10% अंतिम भुगतान)</span>
                             </button>
                           )}
 
                           <button
                             onClick={() => setShowEwayModal(order)}
-                            className="px-3 py-1.5 bg-[#0e3b28] hover:bg-[#154d35] text-stone-200 font-bold text-xs rounded border border-[#206948]"
+                            className="px-3 py-1.5 bg-[#0e3b28] hover:bg-[#154d35] text-stone-200 font-bold text-xs rounded-lg border border-[#206948]"
                           >
                             ई-वे बिल देखें
                           </button>
@@ -939,144 +910,16 @@
               </div>
             )}
 
-            {/* TAB 4: WEIGHBRIDGE & QUALITY CUTTER AUDIT */}
-            {tab === "weighbridge" && (
-              <div className="space-y-6">
-                <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
-                  <h2 className="text-lg font-bold text-amber-300 flex items-center">
-                    <span className="mr-2">🚛</span> धर्म कांटा तौल पर्ची व नमी कटी ऑडिट (Weighbridge & Quality Cutter)
-                  </h2>
-                  <p className="text-xs text-stone-300 mt-1">
-                    धर्म कांटा वजन मिलान में 0.30% तक की प्राकृतिक सूख छूट मान्य है। 11.5% से अधिक नमी पर प्रत्येक 0.50% अधिकता पर ₹25/क्विंटल की कटी स्वचालित रूप से काटी जाती है।
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Origin Weighbridge Entry */}
-                  <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] p-5 space-y-4 shadow-xl">
-                    <h3 className="text-sm font-bold text-amber-300 flex items-center pb-2 border-b border-[#164d34]">
-                      <span className="mr-1.5">1️⃣</span> रवानगी धर्म कांटा पर्ची (Origin Gross Slip)
-                    </h3>
-                    
-                    <div className="space-y-3 text-xs">
-                      <div>
-                        <label className="block text-stone-300 mb-1">सकल वजन / Gross Weight (क्विंटल):</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={originWb.gross_weight_qtl}
-                          onChange={e => setOriginWb({ ...originWb, gross_weight_qtl: e.target.value })}
-                          className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-stone-300 mb-1">खाली गाड़ी वजन / Tare Weight (क्विंटल):</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={originWb.tare_weight_qtl}
-                          onChange={e => setOriginWb({ ...originWb, tare_weight_qtl: e.target.value })}
-                          className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
-                        />
-                      </div>
-
-                      <div className="bg-[#051c13] p-3 rounded-lg border border-[#164d34] font-mono">
-                        <div className="flex justify-between text-stone-300">
-                          <span>रवानगी शुद्ध वजन (Origin Net Wt):</span>
-                          <span className="text-amber-300 font-black text-sm">
-                            {(Number(originWb.gross_weight_qtl) - Number(originWb.tare_weight_qtl)).toFixed(2)} क्विंटल
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Destination Weighbridge & Moisture Check */}
-                  <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] p-5 space-y-4 shadow-xl">
-                    <h3 className="text-sm font-bold text-amber-300 flex items-center pb-2 border-b border-[#164d34]">
-                      <span className="mr-1.5">2️⃣</span> गंतव्य कांटा व नमी परीक्षण (Destination Audit & Cutter)
-                    </h3>
-
-                    <div className="space-y-3 text-xs">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-stone-300 mb-1">गंतव्य सकल वजन (Gross):</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={destWb.gross_weight_qtl}
-                            onChange={e => setDestWb({ ...destWb, gross_weight_qtl: e.target.value })}
-                            className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-stone-300 mb-1">खाली गाड़ी (Tare):</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={destWb.tare_weight_qtl}
-                            onChange={e => setDestWb({ ...destWb, tare_weight_qtl: e.target.value })}
-                            className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-stone-300 mb-1">परीक्षित नमी % (Tested Moisture):</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={destWb.tested_moisture_pct}
-                          onChange={e => setDestWb({ ...destWb, tested_moisture_pct: e.target.value })}
-                          className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
-                        />
-                      </div>
-
-                      {(() => {
-                        const destNet = Number(destWb.gross_weight_qtl) - Number(destWb.tare_weight_qtl);
-                        const origNet = Number(originWb.gross_weight_qtl) - Number(originWb.tare_weight_qtl);
-                        const loss = Math.max(0, origNet - destNet);
-                        const lossPct = origNet > 0 ? (loss / origNet) * 100 : 0;
-
-                        const excessMoisture = Math.max(0, Number(destWb.tested_moisture_pct) - 11.5);
-                        const increments = Math.floor(excessMoisture / 0.5);
-                        const cutterRate = increments * 25.0;
-
-                        return (
-                          <div className="bg-[#051c13] p-3 rounded-lg border border-[#164d34] font-mono space-y-1.5">
-                            <div className="flex justify-between text-stone-300">
-                              <span>गंतव्य शुद्ध वजन:</span>
-                              <span className="font-bold text-white">{destNet.toFixed(2)} qtl</span>
-                            </div>
-                            <div className="flex justify-between text-stone-300">
-                              <span>परिवहन वजन कमी:</span>
-                              <span className={lossPct > 0.3 ? 'text-red-400 font-bold' : 'text-emerald-400'}>
-                                {loss.toFixed(2)} qtl ({lossPct.toFixed(2)}%)
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-stone-300">
-                              <span>नमी कटी दर (11.5% के ऊपर):</span>
-                              <span className="font-bold text-amber-400">₹{cutterRate}/क्विंटल</span>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 5: FARMER MEMBER PASSBOOK */}
+            {/* TAB 4: FARMER MEMBER PASSBOOK */}
             {tab === "passbook" && (
               <div className="space-y-6">
                 <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f] flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-bold text-amber-300 flex items-center">
-                      <span className="mr-2">👨‍🌾</span> किसान सदस्य बही खाता (FPO Member Pool Passbook)
+                      <span className="mr-2">👨‍🌾</span> किसान सदस्य बही खाता (Farmer Member Pool Passbook)
                     </h2>
                     <p className="text-xs text-stone-300 mt-0.5">
-                      FPO द्वारा एकत्रित लॉट के अंतर्गत प्रत्येक किसान का अंशदान और सौदा पूरा होने पर सीधा बैंक हस्तांतरण विवरण।
+                      FPO पूल्ड लॉट में किसान अंशदान एवं पारदर्शी बैंक भुगतान विवरण।
                     </p>
                   </div>
 
@@ -1143,7 +986,7 @@
               </div>
             )}
 
-            {/* TAB 6: COMPLIANCE & SAMPLES */}
+            {/* TAB 5: COMPLIANCE & SAMPLES */}
             {tab === "compliance" && (
               <div className="space-y-6">
                 <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
@@ -1339,7 +1182,7 @@
 
                 <form onSubmit={handleCreateBid} className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-stone-300 mb-1">फसल:</label>
+                    <label className="block text-stone-300 mb-1">अनाज:</label>
                     <select
                       value={bidForm.commodity}
                       onChange={e => setBidForm({ ...bidForm, commodity: e.target.value })}
@@ -1393,7 +1236,7 @@
             <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
               <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
                 <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <h3 className="text-base font-bold text-amber-300">🔄 पलट भाव प्रस्ताव (FPO Counter)</h3>
+                  <h3 className="text-base font-bold text-amber-300">🔄 पलट भाव प्रस्ताव (Counter Offer)</h3>
                   <button onClick={() => setShowCounterModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
                 </div>
 
@@ -1433,105 +1276,6 @@
             </div>
           )}
 
-          {/* ORIGIN WEIGHBRIDGE MODAL */}
-          {showOriginWbModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-              <div className="bg-[#092c1d] rounded-2xl border-2 border-blue-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
-                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <h3 className="text-base font-bold text-blue-300">🚛 रवानगी धर्म कांटा पर्ची (70% Release)</h3>
-                  <button onClick={() => setShowOriginWbModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
-                </div>
-
-                <form onSubmit={handleOriginWeighbridge} className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-stone-300 mb-1">सकल वजन (Gross Wt qtl):</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={originWb.gross_weight_qtl}
-                      onChange={e => setOriginWb({ ...originWb, gross_weight_qtl: e.target.value })}
-                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-stone-300 mb-1">खाली गाड़ी (Tare Wt qtl):</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={originWb.tare_weight_qtl}
-                      onChange={e => setOriginWb({ ...originWb, tare_weight_qtl: e.target.value })}
-                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
-                      required
-                    />
-                  </div>
-
-                  <div className="flex space-x-3 pt-2">
-                    <button type="button" onClick={() => setShowOriginWbModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
-                    <button type="submit" className="flex-1 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg">कांटा पर्ची दर्ज करें</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* DESTINATION WEIGHBRIDGE MODAL */}
-          {showDestWbModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-lg w-full p-6 space-y-4 shadow-2xl">
-                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <h3 className="text-base font-bold text-amber-300">⚖️ गंतव्य कांटा व नमी कटी अंतिम निपटारा</h3>
-                  <button onClick={() => setShowDestWbModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
-                </div>
-
-                <form onSubmit={handleDestWeighbridge} className="space-y-3 text-xs">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-stone-300 mb-1">सकल (Gross Wt):</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={destWb.gross_weight_qtl}
-                        onChange={e => setDestWb({ ...destWb, gross_weight_qtl: e.target.value })}
-                        className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-stone-300 mb-1">खाली (Tare Wt):</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={destWb.tare_weight_qtl}
-                        onChange={e => setDestWb({ ...destWb, tare_weight_qtl: e.target.value })}
-                        className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-stone-300 mb-1">नमी % (Tested Moisture %):</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={destWb.tested_moisture_pct}
-                      onChange={e => setDestWb({ ...destWb, tested_moisture_pct: e.target.value })}
-                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
-                      required
-                    />
-                    <span className="text-[10px] text-stone-400">मानक 11.5% • प्रत्येक 0.5% अतिरिक्त पर ₹25/qtl कटी</span>
-                  </div>
-
-                  <div className="flex space-x-3 pt-2">
-                    <button type="button" onClick={() => setShowDestWbModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
-                    <button type="submit" className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">कटी समायोजित कर अंतिम निपटारा करें</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
           {/* E-WAY BILL MODAL */}
           {showEwayModal && (
             <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
@@ -1549,6 +1293,10 @@
                   <div className="flex justify-between">
                     <span className="text-stone-400">ऑर्डर reference:</span>
                     <span className="font-bold text-white">{showEwayModal.order_id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">खरीदार GSTIN:</span>
+                    <span className="font-bold text-white">{showEwayModal.gstin}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-stone-400">मात्रा:</span>

@@ -775,6 +775,43 @@ def get_order_details(order_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Order not found")
     return order
 
+# 1-Click Simple Dispatch -> Releases 70% Stage 2 Escrow
+@app.post("/api/v1/orders/{order_id}/dispatch")
+def dispatch_order(order_id: str, db: Session = Depends(get_db)):
+    with db.begin():
+        order = db.query(models.Order).filter(models.Order.order_id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        order.status = "DISPATCHED_70_RELEASED"
+        order.origin_net_wt_qtl = order.quantity_qtl
+
+    return {
+        "status": "SUCCESS",
+        "message": f"Order {order_id} marked dispatched. Stage 2 (70%) Escrow released to FPO!",
+        "order_id": order.order_id,
+        "released_dispatch_70": order.escrow_stages.get("stage_2_dispatch_70", {}).get("amount", 0.0),
+        "order_status": order.status
+    }
+
+# 1-Click Simple Delivery Confirmation -> Releases 10% Final Escrow
+@app.post("/api/v1/orders/{order_id}/deliver")
+def deliver_order(order_id: str, db: Session = Depends(get_db)):
+    with db.begin():
+        order = db.query(models.Order).filter(models.Order.order_id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        order.status = "DELIVERED_AND_SETTLED"
+        order.destination_net_wt_qtl = order.quantity_qtl
+        order.final_settled_payout = order.total_invoice_amount
+
+    return {
+        "status": "SUCCESS",
+        "message": f"Order {order_id} delivered successfully. Stage 3 (10%) Escrow released in full!",
+        "order_id": order.order_id,
+        "released_final_10": order.escrow_stages.get("stage_3_delivery_10", {}).get("amount", 0.0),
+        "order_status": order.status
+    }
+
 # 3. Origin Weighbridge Slip -> Releases 70% Stage 2 Escrow
 @app.post("/api/v1/commercial/weighbridge/origin-slip")
 def submit_origin_weighbridge(slip: OriginWeighbridgeSlip, user: dict = Depends(RoleChecker(["FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
