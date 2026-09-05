@@ -25,9 +25,11 @@ WORKDIR /app/backend
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PORT=8000
+ENV WEB_CONCURRENCY=2
 
-EXPOSE 8000
+EXPOSE 8000 10000
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3     CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3     CMD curl -f http://localhost:${PORT}/health || exit 1
 
-CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "main:app"]
+CMD ["sh", "-c", "gunicorn -w ${WEB_CONCURRENCY:-2} -k uvicorn.workers.UvicornWorker -b 0.0.0.0:${PORT:-8000} main:app"]

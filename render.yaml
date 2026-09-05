@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: agri-exchange
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT main:app
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: DATABASE_URL
+        value: sqlite:///./agri_exchange.db
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
