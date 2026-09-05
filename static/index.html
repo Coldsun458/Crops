@@ -8,6 +8,7 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="config.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Rozha+One&display=swap" rel="stylesheet">
@@ -94,6 +95,10 @@
       const [showSampleModal, setShowSampleModal] = useState(null);
       const [showAssayingModal, setShowAssayingModal] = useState(null);
       const [showEwayModal, setShowEwayModal] = useState(null);
+      const [showMapsModal, setShowMapsModal] = useState(false);
+      const [mapsConfig, setMapsConfig] = useState(null);
+      const [inputMapsKey, setInputMapsKey] = useState(localStorage.getItem("agri_gmaps_key") || "");
+      const [savingMapsKey, setSavingMapsKey] = useState(false);
 
       const [bidForm, setBidForm] = useState({ commodity: "Wheat", target_qty_qtl: 200, target_bid_price_per_qtl: 2470, delivery_city: "Delhi" });
       const [counterPrice, setCounterPrice] = useState(2520);
@@ -239,6 +244,47 @@
             .catch(() => {});
         }
       }, [selectedPassbookLot]);
+
+      const fetchMapsConfig = async () => {
+        try {
+          const res = await fetch("/api/v1/config/maps");
+          if (res.ok) {
+            const d = await res.json();
+            setMapsConfig(d);
+            if (d.has_key && !inputMapsKey) setInputMapsKey(d.masked_key);
+          }
+        } catch (e) {}
+      };
+
+      useEffect(() => {
+        fetchMapsConfig();
+      }, []);
+
+      const handleSaveMapsKey = async (e) => {
+        e.preventDefault();
+        setSavingMapsKey(true);
+        try {
+          const res = await fetch("/api/v1/config/maps", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ api_key: inputMapsKey })
+          });
+          if (res.ok) {
+            const d = await res.json();
+            localStorage.setItem("agri_gmaps_key", inputMapsKey);
+            showToast("Google Maps API Key सफलतापूर्वक सहेज ली गई!");
+            fetchMapsConfig();
+            setShowMapsModal(false);
+            refreshTradingData();
+          } else {
+            showToast("कुंजी सहेजने में त्रुटि");
+          }
+        } catch (e) {
+          showToast("सर्वर कनेक्शन त्रुटि");
+        } finally {
+          setSavingMapsKey(false);
+        }
+      };
 
       const handleCreateBid = async (e) => {
         e.preventDefault();
@@ -419,6 +465,27 @@
                     </div>
                     <div className="text-xs font-black truncate max-w-[130px] sm:max-w-[170px]">
                       {currentUser?.name || 'अतिथि'}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Google Maps API Modal Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setShowMapsModal(true)}
+                  className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition shadow ${
+                    mapsConfig?.has_key
+                      ? 'bg-emerald-950/70 border-emerald-500/80 text-emerald-300 hover:bg-emerald-900/80'
+                      : 'bg-[#062417] border-emerald-700/60 text-stone-300 hover:text-white hover:border-amber-400'
+                  }`}
+                  title="Google Maps API Key सेटिंग्स (Maps & Distance Matrix)"
+                >
+                  <span className="text-sm sm:text-base">🗺️</span>
+                  <div className="text-left hidden sm:block">
+                    <div className="text-[9px] uppercase tracking-wider text-stone-400 font-normal">हाईवे नेविगेशन</div>
+                    <div className="flex items-center space-x-1 font-black">
+                      <span>Google Maps</span>
+                      <span className={`w-1.5 h-1.5 rounded-full ${mapsConfig?.has_key ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
                     </div>
                   </div>
                 </button>
@@ -685,6 +752,18 @@
                           <div className="mt-1 text-[11px] text-emerald-300 font-semibold">
                             {activeBestPick.spoilage_alert}
                           </div>
+                          <div className="mt-1.5 pt-1.5 border-t border-[#12422c] flex items-center justify-between text-[10px]">
+                            <span className="text-stone-400">रूट स्त्रोत:</span>
+                            <span className="font-semibold text-amber-300">{activeBestPick.routing_source || "NH-44/48 Highway"}</span>
+                          </div>
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(activeBestPick.mandi + ' Mandi, India')}&destination=${encodeURIComponent(city + ', India')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1.5 text-[11px] text-amber-300 hover:text-amber-200 flex items-center justify-center space-x-1 font-bold bg-[#041a11] py-1 px-2 rounded border border-[#174d35]"
+                          >
+                            <span>🗺️ Google Maps पर रूट देखें ↗</span>
+                          </a>
                         </div>
 
                         <div className="space-y-2">
@@ -1615,6 +1694,96 @@
                 </div>
 
                 <button onClick={() => setShowEwayModal(null)} className="w-full py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">बंद करें</button>
+              </div>
+            </div>
+          )}
+
+          {/* GOOGLE MAPS API KEY CONFIGURATION MODAL */}
+          {showMapsModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-emerald-400 max-w-lg w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xl">🗺️</span>
+                    <h3 className="text-base font-bold text-amber-300">Google Maps Platform सेटिंग्स</h3>
+                  </div>
+                  <button onClick={() => setShowMapsModal(false)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
+                </div>
+
+                <div className="bg-[#051c13] p-4 rounded-xl border border-[#164d34] space-y-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-stone-400">स्थिति (Status):</span>
+                    <span className={`px-2 py-0.5 rounded font-bold ${mapsConfig?.has_key ? 'bg-emerald-900 text-emerald-300 border border-emerald-500' : 'bg-amber-900/80 text-amber-300 border border-amber-500'}`}>
+                      {mapsConfig?.has_key ? '✓ सक्रिय (Configured)' : '⚠ कुंजी दर्ज नहीं है'}
+                    </span>
+                  </div>
+
+                  {mapsConfig?.has_key && (
+                    <div className="flex justify-between font-mono">
+                      <span className="text-stone-400">सक्रिय कुंजी (Active Key):</span>
+                      <span className="text-emerald-300 font-bold">{mapsConfig.masked_key}</span>
+                    </div>
+                  )}
+
+                  <div className="text-stone-300 space-y-1">
+                    <div className="font-bold text-amber-300">समर्थित सुविधाएं (Capabilities):</div>
+                    <ul className="list-disc list-inside space-y-0.5 text-stone-300 text-[11px]">
+                      <li>Distance Matrix API: मंडी से मिल तक वास्तविक हाइवे दूरी व ड्राइविंग समय</li>
+                      <li>Maps JavaScript API: इंटरैक्टिव मंडी व वाहन नेविगेशन मैप</li>
+                      <li>Places API: मिल व एपीएमसी मंडी पता ऑटो-कम्प्लीट</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSaveMapsKey} className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-stone-200 font-semibold mb-1">
+                      Google Maps API Key दर्ज करें:
+                    </label>
+                    <input
+                      type="text"
+                      value={inputMapsKey}
+                      onChange={e => setInputMapsKey(e.target.value)}
+                      placeholder="AIzaSy..."
+                      className="w-full bg-[#051c13] text-stone-100 font-mono p-2.5 rounded-lg border border-[#1c6644] focus:outline-none focus:border-amber-400"
+                      required
+                    />
+                    <p className="text-[10px] text-stone-400 mt-1">
+                      सुरक्षित रूप से <code className="text-emerald-300 font-mono">.env</code> तथा लोकल स्टोरेज में सहेजी जाएगी।
+                    </p>
+                  </div>
+
+                  <div className="bg-amber-950/40 border border-amber-500/50 rounded-lg p-3 text-[11px] text-amber-200 space-y-1.5">
+                    <div className="font-bold flex items-center">
+                      <span className="mr-1">💡</span> मुफ्त आधिकारिक API Key कैसे प्राप्त करें:
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1 text-stone-300">
+                      <li>Google Cloud Console में जाएं: <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="text-amber-300 font-bold underline">Google Cloud Credentials ↗</a></li>
+                      <li>नया प्रोजेक्ट बनाकर <b>Create Credentials → API Key</b> पर क्लिक करें।</li>
+                      <li><b>Maps JavaScript API</b> और <b>Distance Matrix API</b> सक्षम करें।</li>
+                    </ol>
+                    <div className="text-[10px] text-stone-400 italic">
+                      * Google प्रत्येक माह $200 (~₹16,500) का निःशुल्क क्रेडिट प्रदान करता है, जिससे सामान्य उपयोग पूरी तरह मुफ्त रहता है।
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowMapsModal(false)}
+                      className="flex-1 py-2 rounded-lg bg-stone-700 hover:bg-stone-600 text-stone-200 font-bold"
+                    >
+                      रद्द करें
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingMapsKey}
+                      className="flex-1 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-lg"
+                    >
+                      {savingMapsKey ? "सहेजा जा रहा है..." : "कुंजी सहेजें (Save Key)"}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
