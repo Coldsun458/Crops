@@ -58,10 +58,17 @@
       "BULK_LOOSE_TIPPER": "खुला लोडिंग (Loose Tipper ₹0/qtl)"
     };
 
+    const DEFAULT_ACCOUNTS = [
+      { email: "buyer@mill.com", id: "USR-BUYER-01", name: "Aryan Foods & Flour Mills", role: "BUYER", city: "Jalandhar", phone: "+91 98765-11223" },
+      { email: "delhi.miller@agro.com", id: "USR-BUYER-02", name: "Delhi Agro Processing Corp", role: "BUYER", city: "Delhi", phone: "+91 98765-88990" },
+      { email: "manager@doaba-fpo.org", id: "USR-FPO-01", name: "Doaba Agri Producers Co.", role: "FPO", city: "Khanna", phone: "+91 98765-44556" },
+      { email: "karnal.fpo@haryana.org", id: "USR-FPO-02", name: "Karnal Kisan Samriddhi FPO", role: "FPO", city: "Karnal", phone: "+91 98765-33221" }
+    ];
+
     function App() {
-      const [currentUser, setCurrentUser] = useState(null);
+      const [currentUser, setCurrentUser] = useState(DEFAULT_ACCOUNTS[0]);
       const [token, setToken] = useState(localStorage.getItem("agri_jwt") || "");
-      const [accounts, setAccounts] = useState([]);
+      const [accounts, setAccounts] = useState(DEFAULT_ACCOUNTS);
       const [tab, setTab] = useState("calculator"); // calculator, bidding, escrow, passbook, compliance
       const [notification, setNotification] = useState(null);
       const [showLoginModal, setShowLoginModal] = useState(false);
@@ -104,7 +111,8 @@
 
       const apiFetch = async (url, options = {}) => {
         const headers = { "Content-Type": "application/json", ...options.headers };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const activeToken = token || localStorage.getItem("agri_jwt");
+        if (activeToken) headers["Authorization"] = `Bearer ${activeToken}`;
         try {
           const res = await fetch(url, { ...options, headers });
           if (res.status === 401 || res.status === 403) {
@@ -119,42 +127,64 @@
         }
       };
 
-      useEffect(() => {
-        fetch("/api/v1/auth/accounts")
-          .then(r => r.json())
-          .then(data => {
-            setAccounts(data);
-            if (!token && data.length > 0) loginPersona(data[0].email);
-            else if (token) fetchMe();
-          })
-          .catch(() => {});
-      }, []);
+      const loginPersona = async (email) => {
+        try {
+          const res = await fetch("/api/v1/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const jwt = data.token || data.access_token;
+            setToken(jwt);
+            localStorage.setItem("agri_jwt", jwt);
+            setCurrentUser(data.user);
+            setShowLoginModal(false);
+            const portalName = data.user.role === "BUYER" ? "🌾 खरीदार पोर्टल (Buyer Desk)" : "🚜 FPO / विक्रेता पोर्टल (Seller Desk)";
+            showToast(`लॉगिन सफल: ${portalName} • ${data.user.name}`);
+            refreshTradingData();
+          } else {
+            const fallbackUser = (accounts.length ? accounts : DEFAULT_ACCOUNTS).find(a => a.email === email) || DEFAULT_ACCOUNTS[0];
+            setCurrentUser(fallbackUser);
+            setShowLoginModal(false);
+            showToast(`सक्रिय: ${fallbackUser.name} (${fallbackUser.role})`);
+          }
+        } catch (e) {
+          const fallbackUser = (accounts.length ? accounts : DEFAULT_ACCOUNTS).find(a => a.email === email) || DEFAULT_ACCOUNTS[0];
+          setCurrentUser(fallbackUser);
+          setShowLoginModal(false);
+          showToast(`सक्रिय (ऑफलाइन): ${fallbackUser.name} (${fallbackUser.role})`);
+        }
+      };
 
       const fetchMe = async () => {
         const res = await apiFetch("/api/v1/auth/me");
         if (res && res.ok) {
           const data = await res.json();
           setCurrentUser(data.user);
+        } else {
+          loginPersona("buyer@mill.com");
         }
       };
 
-      const loginPersona = async (email) => {
-        const res = await fetch("/api/v1/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const jwt = data.token || data.access_token;
-          setToken(jwt);
-          localStorage.setItem("agri_jwt", jwt);
-          setCurrentUser(data.user);
-          setShowLoginModal(false);
-          const portalName = data.user.role === "BUYER" ? "🌾 खरीदार पोर्टल (Buyer Desk)" : "🚜 FPO / विक्रेता पोर्टल (Seller Desk)";
-          showToast(`सफलतापूर्वक लॉगिन: ${portalName} - ${data.user.name}`);
-        }
-      };
+      useEffect(() => {
+        fetch("/api/v1/auth/accounts")
+          .then(r => r.json())
+          .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              setAccounts(data);
+            }
+            if (!token) {
+              loginPersona("buyer@mill.com");
+            } else {
+              fetchMe();
+            }
+          })
+          .catch(() => {
+            if (!token) loginPersona("buyer@mill.com");
+          });
+      }, []);
 
       const fetchRecommendations = async () => {
         setLoadingRecs(true);
@@ -335,31 +365,62 @@
                 </div>
               </div>
 
-              {/* Two Distinct Portals / Switcher */}
-              <div className="flex items-center space-x-2">
-                {/* Active Portal Badge */}
-                <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border shadow ${
-                  isBuyer ? 'bg-amber-950/80 border-amber-500 text-amber-300' :
-                  isFPO ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' :
-                  'bg-stone-900 border-stone-600 text-stone-300'
-                }`}>
-                  <span className="text-sm">{isBuyer ? '🌾' : '🚜'}</span>
+              {/* TWO DISTINCT PORTALS: DIRECT 1-CLICK TOGGLE & PERSONA BADGE */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                {/* 1-Click Segmented Toggle Switcher */}
+                <div className="flex items-center bg-[#02130c] p-1 rounded-xl border-2 border-emerald-600/80 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => loginPersona("buyer@mill.com")}
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-black flex items-center space-x-1.5 transition-all duration-150 cursor-pointer ${
+                      isBuyer
+                        ? "bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300"
+                        : "text-stone-300 hover:text-white hover:bg-[#093220]"
+                    }`}
+                    title="खरीदार पोर्टल में बदलें (Switch to Buyer Desk)"
+                  >
+                    <span>🌾</span>
+                    <span>खरीदार (Buyer)</span>
+                    {isBuyer && <span className="ml-1 text-[9px] bg-slate-950 text-amber-300 px-1.5 py-0.5 rounded-full font-black">सक्रिय</span>}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => loginPersona("manager@doaba-fpo.org")}
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-black flex items-center space-x-1.5 transition-all duration-150 cursor-pointer ${
+                      isFPO
+                        ? "bg-emerald-500 text-slate-950 shadow-md ring-2 ring-emerald-300"
+                        : "text-stone-300 hover:text-white hover:bg-[#093220]"
+                    }`}
+                    title="विक्रेता / FPO पोर्टल में बदलें (Switch to Seller Desk)"
+                  >
+                    <span>🚜</span>
+                    <span>विक्रेता / FPO (Seller)</span>
+                    {isFPO && <span className="ml-1 text-[9px] bg-slate-950 text-emerald-300 px-1.5 py-0.5 rounded-full font-black">सक्रिय</span>}
+                  </button>
+                </div>
+
+                {/* Current Active Persona & Other Accounts Modal */}
+                <button
+                  type="button"
+                  onClick={() => setShowLoginModal(true)}
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border shadow text-left cursor-pointer hover:opacity-95 transition ${
+                    isBuyer ? 'bg-amber-950/80 border-amber-500 text-amber-300' :
+                    isFPO ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' :
+                    'bg-stone-900 border-stone-600 text-stone-300'
+                  }`}
+                  title="अन्य खाता चुनें (Click to switch accounts)"
+                >
+                  <span className="text-base">{isBuyer ? '🌾' : '🚜'}</span>
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
-                      {isBuyer ? 'खरीदार पोर्टल (Buyer Desk)' : isFPO ? 'विक्रेता / FPO पोर्टल (Seller Desk)' : 'प्रशासक'}
+                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-80 flex items-center space-x-1">
+                      <span>{isBuyer ? 'खरीदार मिलर' : 'FPO समिति'}</span>
+                      <span className="text-[9px] underline text-stone-300 ml-1">▼ अन्य खाते</span>
                     </div>
-                    <div className="text-xs font-black truncate max-w-[160px] sm:max-w-none">
+                    <div className="text-xs font-black truncate max-w-[130px] sm:max-w-[170px]">
                       {currentUser?.name || 'अतिथि'}
                     </div>
                   </div>
-                </div>
-
-                {/* Portal Switch Button */}
-                <button
-                  onClick={() => setShowLoginModal(true)}
-                  className="px-3 py-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded-lg shadow-lg transition flex items-center space-x-1"
-                >
-                  <span>🔄 पोर्टल बदलें</span>
                 </button>
               </div>
             </div>
@@ -430,6 +491,43 @@
             {tab === "calculator" && (
               <div className="space-y-6">
                 
+                {/* Active Portal Info Banner with Quick Switch */}
+                {isBuyer ? (
+                  <div className="bg-amber-950/60 border border-amber-500/70 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-lg">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-2xl">🌾</span>
+                      <div>
+                        <div className="font-black text-amber-300 text-sm">खरीदार पोर्टल सक्रिय (Buyer Desk Active) • {currentUser?.name}</div>
+                        <div className="text-stone-300">आप थोक खरीदार/मिलर के रूप में अनाज की शुद्ध लैंडेड लागत देख रहे हैं और सीधे FPO से खरीद सकते हैं।</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => loginPersona("manager@doaba-fpo.org")}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow transition flex items-center space-x-1 cursor-pointer"
+                    >
+                      <span>🚜 विक्रेता (FPO) पोर्टल में बदलें →</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-emerald-950/60 border border-emerald-500/70 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-lg">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-2xl">🚜</span>
+                      <div>
+                        <div className="font-black text-emerald-300 text-sm">विक्रेता / FPO पोर्टल सक्रिय (Seller Desk Active) • {currentUser?.name}</div>
+                        <div className="text-stone-300">आप FPO समिति के रूप में मंडी भाव, MSP अंतर और खरीदारों की मांग बोलियां देख रहे हैं।</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => loginPersona("buyer@mill.com")}
+                      className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg shadow transition flex items-center space-x-1 cursor-pointer"
+                    >
+                      <span>🌾 खरीदार (Buyer) पोर्टल में बदलें →</span>
+                    </button>
+                  </div>
+                )}
+
                 <div className="bg-[#092c1d] p-4 sm:p-5 rounded-xl border border-[#1b5d3f] shadow-xl">
                   <div className="flex items-center justify-between mb-4 border-b border-[#174e35] pb-2">
                     <h2 className="text-base sm:text-lg font-bold text-amber-300 flex items-center">
@@ -590,12 +688,29 @@
                         </div>
 
                         <div className="space-y-2">
-                          <button
-                            onClick={() => setShowBuyModal(activeBestPick)}
-                            className="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg text-sm shadow-lg transition flex items-center justify-center space-x-1"
-                          >
-                            <span>⚡ सौदा पक्का करें (Lock Deal)</span>
-                          </button>
+                          {isBuyer ? (
+                            <button
+                              onClick={() => setShowBuyModal(activeBestPick)}
+                              className="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg text-sm shadow-lg transition flex items-center justify-center space-x-1"
+                            >
+                              <span>⚡ सौदा पक्का करें (Lock Deal - 20% अमानत)</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setBidForm({
+                                  commodity: activeBestPick.commodity,
+                                  target_qty_qtl: activeBestPick.available_qty_qtl || 200,
+                                  target_bid_price_per_qtl: activeBestPick.base_price_per_qtl,
+                                  delivery_city: activeBestPick.mandi
+                                });
+                                setShowNewBidModal(true);
+                              }}
+                              className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-lg text-sm shadow-lg transition flex items-center justify-center space-x-1"
+                            >
+                              <span>🚜 इस भाव पर नया FPO बिक्री प्रस्ताव लगाएं</span>
+                            </button>
+                          )}
                           
                           <div className="grid grid-cols-2 gap-2">
                             <button
@@ -631,22 +746,22 @@
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs text-stone-200">
-                      <thead className="bg-[#062217] text-stone-300 text-[11px] uppercase tracking-wider font-semibold border-b border-[#174e35]">
+                      <thead className="bg-[#062217] text-stone-400 border-b border-[#164d34] font-semibold">
                         <tr>
-                          <th className="p-3">मंडी एवं राज्य</th>
-                          <th className="p-3">FPO संस्था</th>
-                          <th className="p-3">उपलब्ध मात्रा</th>
-                          <th className="p-3">मंडी मूल भाव</th>
-                          <th className="p-3">गाड़ी भाड़ा</th>
+                          <th className="p-3">उत्पत्ति मंडी</th>
+                          <th className="p-3">FPO / सप्लायर</th>
+                          <th className="p-3">उपलब्ध स्टॉक</th>
+                          <th className="p-3">मंडी भाव (Base)</th>
+                          <th className="p-3">भाड़ा</th>
                           <th className="p-3">शुद्ध लैंडेड भाव</th>
-                          <th className="p-3 text-right">सौदा क्रिया</th>
+                          <th className="p-3 text-right">कार्रवाई</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#13442e]">
+                      <tbody className="divide-y divide-[#13442e] font-mono">
                         {allListings.map(lot => (
-                          <tr key={lot.id} className="hover:bg-[#0c3725] transition font-mono">
-                            <td className="p-3 font-sans font-bold text-white">
-                              {lot.mandi}
+                          <tr key={lot.id} className="hover:bg-[#0c3725] transition">
+                            <td className="p-3">
+                              <span className="font-bold text-white font-sans">{lot.mandi}</span>
                               <div className="text-[10px] text-stone-400 font-mono">{lot.distance_km} km</div>
                             </td>
                             <td className="p-3 font-sans text-stone-300">{lot.fpo_name}</td>
@@ -657,12 +772,24 @@
                               ₹{lot.net_landed_cost_per_qtl?.toLocaleString('en-IN')}
                             </td>
                             <td className="p-3 text-right space-x-2 font-sans">
-                              <button
-                                onClick={() => setShowBuyModal(lot)}
-                                className="px-3 py-1 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow"
-                              >
-                                सौदा करें
-                              </button>
+                              {isBuyer ? (
+                                <button
+                                  onClick={() => setShowBuyModal(lot)}
+                                  className="px-3 py-1 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow"
+                                >
+                                  सौदा करें
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setSelectedPassbookLot(lot.id);
+                                    setTab("passbook");
+                                  }}
+                                  className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow"
+                                >
+                                  किसान बही
+                                </button>
+                              )}
                               <button
                                 onClick={() => setShowSampleModal(lot)}
                                 className="px-2 py-1 rounded bg-[#10422c] hover:bg-[#17563b] text-stone-200 text-xs border border-emerald-600"
@@ -1099,11 +1226,14 @@
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Buyer Portal Card */}
-                  <div className="bg-[#051c13] rounded-xl border-2 border-amber-500/80 p-4 space-y-3 flex flex-col justify-between hover:border-amber-400 transition">
+                  <div className={`rounded-xl border-2 p-4 space-y-3 flex flex-col justify-between transition ${
+                    isBuyer ? 'bg-[#062419] border-amber-400 ring-2 ring-amber-400/40' : 'bg-[#051c13] border-amber-500/60'
+                  }`}>
                     <div>
                       <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm">
                         <span className="text-2xl">🌾</span>
                         <span>खरीदार पोर्टल (BUYER DESK)</span>
+                        {isBuyer && <span className="ml-auto text-[10px] bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded">सक्रिय</span>}
                       </div>
                       <p className="text-[11px] text-stone-400 mt-1">
                         फ्लोर मिलर्स, फूड प्रोसेसर्स व थोक व्यापारियों के लिए: शुद्ध लैंडेड भाव देखें, मांग बोली लगाएं व सीधे माल खरीदें।
@@ -1111,29 +1241,40 @@
                     </div>
 
                     <div className="space-y-2 pt-2 border-t border-[#164d34]">
-                      <div className="text-[11px] text-stone-300 font-semibold">उपलब्ध खरीदार खाते:</div>
-                      {accounts.filter(a => a.role === "BUYER").map(b => (
+                      <div className="text-[11px] text-stone-300 font-semibold">उपलब्ध खरीदार खाते (Click to Switch):</div>
+                      {(accounts.length ? accounts : DEFAULT_ACCOUNTS).filter(a => a.role === "BUYER").map(b => (
                         <button
                           key={b.email}
+                          type="button"
                           onClick={() => loginPersona(b.email)}
-                          className="w-full text-left p-2 rounded bg-[#0b3323] hover:bg-[#124b34] text-xs font-bold text-amber-200 border border-emerald-700/60 transition flex items-center justify-between"
+                          className={`w-full text-left p-2.5 rounded text-xs font-bold border transition flex items-center justify-between cursor-pointer ${
+                            currentUser?.email === b.email
+                              ? 'bg-amber-500/20 border-amber-400 text-amber-200'
+                              : 'bg-[#0b3323] hover:bg-[#124b34] text-stone-200 border-emerald-700/60'
+                          }`}
                         >
                           <div>
-                            <div>{b.name}</div>
-                            <div className="text-[10px] text-stone-400 font-normal">{b.city}</div>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="font-sans">{b.name}</span>
+                              {currentUser?.email === b.email && <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1 rounded">सक्रिय</span>}
+                            </div>
+                            <div className="text-[10px] text-stone-400 font-normal font-sans">{b.city} • {b.phone}</div>
                           </div>
-                          <span className="text-amber-400 text-xs">लॉगिन →</span>
+                          <span className="text-amber-400 text-xs font-bold">{currentUser?.email === b.email ? '✓ चयनित' : 'लॉगिन →'}</span>
                         </button>
                       ))}
                     </div>
                   </div>
 
                   {/* Seller / FPO Portal Card */}
-                  <div className="bg-[#051c13] rounded-xl border-2 border-emerald-500/80 p-4 space-y-3 flex flex-col justify-between hover:border-emerald-400 transition">
+                  <div className={`rounded-xl border-2 p-4 space-y-3 flex flex-col justify-between transition ${
+                    isFPO ? 'bg-[#062419] border-emerald-400 ring-2 ring-emerald-400/40' : 'bg-[#051c13] border-emerald-500/60'
+                  }`}>
                     <div>
                       <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
                         <span className="text-2xl">🚜</span>
                         <span>विक्रेता / FPO पोर्टल (SELLER DESK)</span>
+                        {isFPO && <span className="ml-auto text-[10px] bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded">सक्रिय</span>}
                       </div>
                       <p className="text-[11px] text-stone-400 mt-1">
                         किसान उत्पादक संगठन (FPOs) व आढ़तियों के लिए: बिक्री बोली / प्रस्ताव लगाएं, खरीदार बोलियां स्वीकारें व किसान खाता देखें।
@@ -1141,26 +1282,34 @@
                     </div>
 
                     <div className="space-y-2 pt-2 border-t border-[#164d34]">
-                      <div className="text-[11px] text-stone-300 font-semibold">उपलब्ध विक्रेता FPO खाते:</div>
-                      {accounts.filter(a => a.role === "FPO").map(f => (
+                      <div className="text-[11px] text-stone-300 font-semibold">उपलब्ध विक्रेता FPO खाते (Click to Switch):</div>
+                      {(accounts.length ? accounts : DEFAULT_ACCOUNTS).filter(a => a.role === "FPO").map(f => (
                         <button
                           key={f.email}
+                          type="button"
                           onClick={() => loginPersona(f.email)}
-                          className="w-full text-left p-2 rounded bg-[#0b3323] hover:bg-[#124b34] text-xs font-bold text-emerald-200 border border-emerald-700/60 transition flex items-center justify-between"
+                          className={`w-full text-left p-2.5 rounded text-xs font-bold border transition flex items-center justify-between cursor-pointer ${
+                            currentUser?.email === f.email
+                              ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200'
+                              : 'bg-[#0b3323] hover:bg-[#124b34] text-stone-200 border-emerald-700/60'
+                          }`}
                         >
                           <div>
-                            <div>{f.name}</div>
-                            <div className="text-[10px] text-stone-400 font-normal">{f.city} मंडी</div>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="font-sans">{f.name}</span>
+                              {currentUser?.email === f.email && <span className="text-[9px] bg-emerald-400 text-slate-950 font-black px-1 rounded">सक्रिय</span>}
+                            </div>
+                            <div className="text-[10px] text-stone-400 font-normal font-sans">{f.city} मंडी • {f.phone}</div>
                           </div>
-                          <span className="text-emerald-400 text-xs">लॉगिन →</span>
+                          <span className="text-emerald-400 text-xs font-bold">{currentUser?.email === f.email ? '✓ चयनित' : 'लॉगिन →'}</span>
                         </button>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-2 text-center text-[11px] text-stone-400">
-                  वर्तमान में सक्रिय: <b className="text-white">{currentUser?.name}</b> ({currentUser?.role})
+                <div className="pt-2 text-center text-xs text-stone-300">
+                  वर्तमान सक्रिय खाता: <b className="text-amber-300">{currentUser?.name}</b> <span className="text-stone-400">({currentUser?.role === 'BUYER' ? 'खरीदार मिलर' : 'FPO समिति'})</span>
                 </div>
               </div>
             </div>

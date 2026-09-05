@@ -52,7 +52,9 @@ WINDOW_RULES = {
 
 MOCK_USERS = {
     "buyer@mill.com": {"id": "USR-BUYER-01", "name": "Aryan Foods & Flour Mills", "role": "BUYER", "city": "Jalandhar", "phone": "+91 98765-11223"},
+    "delhi.miller@agro.com": {"id": "USR-BUYER-02", "name": "Delhi Agro Processing Corp", "role": "BUYER", "city": "Delhi", "phone": "+91 98765-88990"},
     "manager@doaba-fpo.org": {"id": "USR-FPO-01", "name": "Doaba Agri Producers Co.", "role": "FPO", "city": "Khanna", "phone": "+91 98765-44556"},
+    "karnal.fpo@haryana.org": {"id": "USR-FPO-02", "name": "Karnal Kisan Samriddhi FPO", "role": "FPO", "city": "Karnal", "phone": "+91 98765-33221"},
     "admin@khanna-mandi.gov": {"id": "USR-ADMIN-01", "name": "Khanna APMC Mandi Secretary", "role": "MANDI_ADMIN", "city": "Khanna", "phone": "+91 98765-77889"},
     "dispatch@truckunion.in": {"id": "USR-DRIVER-01", "name": "Punjab Highway Freight Fleet", "role": "TRANSPORTER", "city": "Ludhiana", "phone": "+91 98765-99001"}
 }
