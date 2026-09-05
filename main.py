@@ -28,9 +28,9 @@ from engine import (
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="AgriExchange Wholesaler Production Engine",
-    description="Market Arbitrage, Commercial Safeguards, Double Auction, and Escrow Execution API",
-    version="4.5.0"
+    title="KisanVyapar Mandi Wholesaler Trading Desk",
+    description="National B2B Grain Wholesaler Desk: Mandi Bhao, Landed Calculator, Double Auction & Escrow",
+    version="5.0.0"
 )
 
 app.add_middleware(
@@ -542,10 +542,10 @@ def healthcheck(db: Session = Depends(get_db)):
         db_status = "sqlite_active"
     return {
         "status": "healthy",
-        "service": "AgriExchange Commercial Wholesaler Engine",
+        "service": "KisanVyapar Mandi Wholesaler Trading Desk",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "database": db_status,
-        "version": "4.5.0"
+        "version": "5.0.0"
     }
 
 @app.get("/")

@@ -3,548 +3,1581 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>AgriExchange Spot & Wholesaler Terminal</title>
+  <title>KisanVyapar Mandi Desk | राष्ट्रीय कृषि थोक व्यापार मंच</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>body { -webkit-tap-highlight-color: transparent; }</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Rozha+One&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace'],
+            mandi: ['"Rozha One"', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .custom-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0c1712; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #234633; border-radius: 4px; }
+    .grain-pattern {
+      background-color: #061e14;
+      background-image: radial-gradient(#144833 0.8px, transparent 0.8px), radial-gradient(#144833 0.8px, #061e14 0.8px);
+      background-size: 32px 32px;
+      background-position: 0 0, 16px 16px;
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased font-sans pb-20 md:pb-8 selection:bg-emerald-500 selection:text-black min-h-screen">
+<body class="grain-pattern text-stone-100 antialiased font-sans pb-28 md:pb-12 min-h-screen selection:bg-amber-500 selection:text-black">
   <div id="root"></div>
-
   <script type="text/babel">
     const { useState, useEffect } = React;
+
+    const CROP_OPTIONS = [
+      { id: "Wheat", hindi: "गेहूं (Sharbati/Lokwan)", msp: 2425.0, icon: "🌾" },
+      { id: "Rice", hindi: "चावल (1121 Steam Basmati)", msp: 2320.0, icon: "🍚" },
+      { id: "Mustard", hindi: "सरसों (Mustard 42% Oil)", msp: 5650.0, icon: "🌻" },
+      { id: "Maize", hindi: "मक्का (Yellow Corn)", msp: 2225.0, icon: "🌽" },
+      { id: "Gram", hindi: "चना (Desi Chana)", msp: 5440.0, icon: "🫘" }
+    ];
+
+    const CITY_OPTIONS = ["Jalandhar", "Delhi", "Chandigarh", "Jaipur", "Mumbai"];
+
+    const BAGGING_LABELS = {
+      "50KG_JUTE_GUNNY": "50 kg नई जूट बोरी (B-Twill Gunny +₹65/qtl)",
+      "50KG_PP_BAG": "50 kg PP प्लास्टिक बैग (+₹28/qtl)",
+      "BULK_LOOSE_TIPPER": "खुला लोडिंग (Loose Tipper ₹0/qtl)"
+    };
 
     function App() {
       const [currentUser, setCurrentUser] = useState(null);
       const [token, setToken] = useState(localStorage.getItem("agri_jwt") || "");
       const [accounts, setAccounts] = useState([]);
-      const [tab, setTab] = useState("buyer"); // "buyer", "auction", "fpo"
-
-      const [commodity, setCommodity] = useState("Wheat");
-      const [city, setCity] = useState("Jalandhar");
-      const [listings, setListings] = useState([]);
-      const [bestPick, setBestPick] = useState(null);
-      const [liveBids, setLiveBids] = useState([]);
+      const [tab, setTab] = useState("calculator");
       const [notification, setNotification] = useState(null);
 
-      // Modals
-      const [selectedLot, setSelectedLot] = useState(null);
+      const [commodity, setCommodity] = useState("Wheat");
+      const [city, setCity] = useState("Delhi");
+      const [quantityQtl, setQuantityQtl] = useState(200);
       const [baggingType, setBaggingType] = useState("50KG_JUTE_GUNNY");
       const [insuranceOpted, setInsuranceOpted] = useState(true);
-      const [sampleModalLot, setSampleModalLot] = useState(null);
-      const [settlementModal, setSettlementModal] = useState(false);
-      const [passbookLot, setPassbookLot] = useState(null);
 
-      // Forms
-      const [bidForm, setBidForm] = useState({ commodity: "Wheat", target_qty_qtl: 200, target_bid_price_per_qtl: 2450, delivery_city: "Jalandhar" });
-      const [settleForm, setSettleForm] = useState({
-        order_id: "",
-        gross_weight_qtl: 348.5,
-        tare_weight_qtl: 98.2,
-        tested_moisture_pct: 12.3,
-        tested_broken_pct: 1.2
-      });
+      const [recommendationData, setRecommendationData] = useState(null);
+      const [loadingRecs, setLoadingRecs] = useState(false);
+
+      const [bids, setBids] = useState([]);
+      const [orders, setOrders] = useState([]);
+      const [samples, setSamples] = useState([]);
+      const [passbook, setPassbook] = useState(null);
+      const [selectedPassbookLot, setSelectedPassbookLot] = useState("LOT-WHEAT-KHN-01");
+
+      const [showNewBidModal, setShowNewBidModal] = useState(false);
+      const [showCounterModal, setShowCounterModal] = useState(null);
+      const [showBuyModal, setShowBuyModal] = useState(null);
+      const [showSampleModal, setShowSampleModal] = useState(null);
+      const [showAssayingModal, setShowAssayingModal] = useState(null);
+      const [showOriginWbModal, setShowOriginWbModal] = useState(null);
+      const [showDestWbModal, setShowDestWbModal] = useState(null);
+      const [showEwayModal, setShowEwayModal] = useState(null);
+
+      const [bidForm, setBidForm] = useState({ commodity: "Wheat", target_qty_qtl: 200, target_bid_price_per_qtl: 2470, delivery_city: "Delhi" });
+      const [counterPrice, setCounterPrice] = useState(2520);
+      const [counterNotes, setCounterNotes] = useState("100% शुद्ध ग्रेड-A माल, तुरंत रवानगी तैयार");
+      const [deliveryAddress, setDeliveryAddress] = useState("आर्यन फूड्स एंड फ्लोर मिल्स, जी.टी. रोड, जालंधर, पंजाब");
+      const [gstin, setGstin] = useState("03AAAAA1234A1Z5");
+      const [originWb, setOriginWb] = useState({ gross_weight_qtl: 142.5, tare_weight_qtl: 42.5 });
+      const [destWb, setDestWb] = useState({ gross_weight_qtl: 142.1, tare_weight_qtl: 42.5, tested_moisture_pct: 12.5, tested_broken_pct: 1.5, tested_foreign_matter_pct: 0.5 });
+
+      const showToast = (msg) => {
+        setNotification(msg);
+        setTimeout(() => setNotification(null), 4500);
+      };
 
       const apiFetch = async (url, options = {}) => {
         const headers = { "Content-Type": "application/json", ...options.headers };
         if (token) headers["Authorization"] = `Bearer ${token}`;
-        const res = await fetch(url, { ...options, headers });
-        if (res.status === 401 || res.status === 403) {
-          const err = await res.json();
-          alert(`Access Blocked: ${err.detail}`);
+        try {
+          const res = await fetch(url, { ...options, headers });
+          if (res.status === 401 || res.status === 403) {
+            const err = await res.json().catch(() => ({ detail: "पहुंच अस्वीकृत" }));
+            showToast(`अधिकार सूचना: ${err.detail}`);
+            return null;
+          }
+          return res;
+        } catch (err) {
+          showToast("सर्वर कनेक्शन त्रुटि");
           return null;
         }
-        return res;
       };
 
-      const loadAccounts = async () => {
-        const res = await fetch("/api/v1/auth/accounts");
-        const data = await res.json();
-        setAccounts(data);
-        if (!token && data.length > 0) loginAs(data[0].email);
+      useEffect(() => {
+        fetch("/api/v1/auth/accounts")
+          .then(r => r.json())
+          .then(data => {
+            setAccounts(data);
+            if (!token && data.length > 0) loginPersona(data[0].email);
+            else if (token) fetchMe();
+          })
+          .catch(() => {});
+      }, []);
+
+      const fetchMe = async () => {
+        const res = await apiFetch("/api/v1/auth/me");
+        if (res && res.ok) {
+          const data = await res.json();
+          setCurrentUser(data.user);
+        }
       };
 
-      const loginAs = async (email) => {
+      const loginPersona = async (email) => {
         const res = await fetch("/api/v1/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email })
         });
-        const data = await res.json();
-        if (data.token) {
-          setToken(data.token);
+        if (res.ok) {
+          const data = await res.json();
+          setToken(data.access_token);
+          localStorage.setItem("agri_jwt", data.access_token);
           setCurrentUser(data.user);
-          localStorage.setItem("agri_jwt", data.token);
-          setNotification(`Active Identity: ${data.user.name} (${data.user.role})`);
-          if (data.user.role === "FPO") setTab("fpo");
-          else setTab("buyer");
+          showToast(`सफलतापूर्वक लॉगिन: ${data.user.name} (${data.user.role})`);
         }
       };
 
-      const fetchMarket = async () => {
-        const res = await apiFetch("/api/v1/recommendations", {
-          method: "POST",
-          body: JSON.stringify({ commodity, buyer_city: city, quantity_qtl: 100 })
-        });
-        if (res) {
-          const data = await res.json();
-          setListings(data.all_listings || []);
-          setBestPick(data.best_pick || null);
+      const fetchRecommendations = async () => {
+        setLoadingRecs(true);
+        try {
+          const res = await fetch("/api/v1/recommendations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              commodity,
+              buyer_city: city,
+              quantity_qtl: Number(quantityQtl) || 200
+            })
+          });
+          if (res.ok) {
+            setRecommendationData(await res.json());
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setLoadingRecs(false);
         }
       };
 
-      const fetchBids = async () => {
-        const res = await apiFetch("/api/v1/bids/live");
-        if (res) setLiveBids(await res.json());
-      };
-
-      useEffect(() => { loadAccounts(); }, []);
       useEffect(() => {
-        if (token) {
-          if (tab === "buyer") fetchMarket();
-          if (tab === "auction") fetchBids();
-        }
-      }, [tab, commodity, city, token]);
+        fetchRecommendations();
+      }, [commodity, city, quantityQtl]);
 
-      // Sample Request
-      const handleRequestSample = async (lot) => {
-        const res = await apiFetch("/api/v1/commercial/request-sample", {
-          method: "POST",
-          body: JSON.stringify({ lot_id: lot.id, delivery_address: "Industrial Complex, Focal Point, Jalandhar" })
-        });
-        if (res) {
-          const data = await res.json();
-          setSampleModalLot(null);
-          setNotification(`${data.message}. Tracking: ${data.sample.courier_tracking_no}`);
+      const refreshTradingData = async () => {
+        try {
+          const [bidsRes, ordersRes, samplesRes] = await Promise.all([
+            fetch("/api/v1/bids/live"),
+            fetch("/api/v1/orders/all"),
+            fetch("/api/v1/commercial/samples")
+          ]);
+          if (bidsRes.ok) setBids(await bidsRes.json());
+          if (ordersRes.ok) setOrders(await ordersRes.json());
+          if (samplesRes.ok) setSamples(await samplesRes.json());
+        } catch (e) {}
+      };
+
+      useEffect(() => {
+        refreshTradingData();
+        const iv = setInterval(refreshTradingData, 8000);
+        return () => clearInterval(iv);
+      }, []);
+
+      useEffect(() => {
+        if (selectedPassbookLot) {
+          fetch(`/api/v1/fpo/farmer-passbook/${selectedPassbookLot}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d) setPassbook(d); })
+            .catch(() => {});
+        }
+      }, [selectedPassbookLot]);
+
+      const handleCreateBid = async (e) => {
+        e.preventDefault();
+        const res = await apiFetch("/api/v1/bids/create", { method: "POST", body: JSON.stringify(bidForm) });
+        if (res && res.ok) {
+          showToast("नई बोली दर्ज की गई!");
+          setShowNewBidModal(false);
+          refreshTradingData();
         }
       };
 
-      // Execute Order
-      const handleExecuteBuy = async (e) => {
+      const handleAcceptBid = async (bidId) => {
+        const res = await apiFetch(`/api/v1/bids/${bidId}/accept`, { method: "POST" });
+        if (res && res.ok) {
+          const d = await res.json();
+          showToast(`सौदा पक्का! ऑर्डर आईडी: ${d.order_id}`);
+          refreshTradingData();
+          setTab("escrow");
+        }
+      };
+
+      const handleCounterBid = async (e) => {
         e.preventDefault();
+        if (!showCounterModal) return;
+        const res = await apiFetch(`/api/v1/bids/${showCounterModal.bid_id}/counter`, {
+          method: "POST",
+          body: JSON.stringify({ counter_price_per_qtl: Number(counterPrice), counter_notes: counterNotes })
+        });
+        if (res && res.ok) {
+          showToast("पलट भाव (Counter Offer) भेजा गया");
+          setShowCounterModal(null);
+          refreshTradingData();
+        }
+      };
+
+      const handleAcceptCounter = async (bidId) => {
+        const res = await apiFetch(`/api/v1/bids/${bidId}/counter-accept`, { method: "POST" });
+        if (res && res.ok) {
+          const d = await res.json();
+          showToast(`पलट भाव स्वीकार! ऑर्डर तैयार: ${d.order_id}`);
+          refreshTradingData();
+          setTab("escrow");
+        }
+      };
+
+      const handleExecuteBuy = async (lot) => {
         const res = await apiFetch("/api/v1/orders/buy", {
           method: "POST",
           body: JSON.stringify({
-            lot_id: selectedLot.id,
-            delivery_address: "Industrial Focal Point, Phase-7, Jalandhar",
-            gstin: "03AAAAA0000A1Z5",
-            quantity_qtl: 100,
+            lot_id: lot.id,
+            quantity_qtl: Number(quantityQtl) || 200,
+            delivery_address: deliveryAddress,
+            gstin: gstin,
+            buyer_city: city,
             bagging_type: baggingType,
-            transit_insurance_opted: insuranceOpted
+            transit_insurance: insuranceOpted
           })
         });
-        if (res) {
-          const data = await res.json();
-          setSelectedLot(null);
-          setNotification(`Order Confirmed! e-Way Bill: ${data.order.eway_bill_no}. Advance Escrow (20%) Locked.`);
-          fetchMarket();
+        if (res && res.ok) {
+          const d = await res.json();
+          showToast(`सौदा पक्का! ई-वे बिल: ${d.eway_bill_no}`);
+          setShowBuyModal(null);
+          refreshTradingData();
+          setTab("escrow");
         }
       };
 
-      // Destination Settle
-      const handleSettleCutter = async (e) => {
+      const handleRequestSample = async (lot) => {
+        const res = await apiFetch("/api/v1/commercial/request-sample", {
+          method: "POST",
+          body: JSON.stringify({ lot_id: lot.id, delivery_address: deliveryAddress })
+        });
+        if (res && res.ok) {
+          const d = await res.json();
+          showToast(`1 किग्रा सीलबंद नमूना रवाना! कूरियर ट्रैकिंग: ${d.sample_record.courier_tracking_no}`);
+          setShowSampleModal(null);
+          refreshTradingData();
+        }
+      };
+
+      const handleOriginWeighbridge = async (e) => {
         e.preventDefault();
+        if (!showOriginWbModal) return;
+        const res = await apiFetch("/api/v1/commercial/weighbridge/origin-slip", {
+          method: "POST",
+          body: JSON.stringify({
+            order_id: showOriginWbModal.order_id,
+            gross_weight_qtl: Number(originWb.gross_weight_qtl),
+            tare_weight_qtl: Number(originWb.tare_weight_qtl)
+          })
+        });
+        if (res && res.ok) {
+          const d = await res.json();
+          showToast(`कांटा पर्ची दर्ज! 70% अमानत FPO को जारी (₹${d.released_dispatch_70.toLocaleString('en-IN')})`);
+          setShowOriginWbModal(null);
+          refreshTradingData();
+        }
+      };
+
+      const handleDestWeighbridge = async (e) => {
+        e.preventDefault();
+        if (!showDestWbModal) return;
         const res = await apiFetch("/api/v1/commercial/weighbridge/destination-settle", {
           method: "POST",
-          body: JSON.stringify(settleForm)
+          body: JSON.stringify({
+            order_id: showDestWbModal.order_id,
+            gross_weight_qtl: Number(destWb.gross_weight_qtl),
+            tare_weight_qtl: Number(destWb.tare_weight_qtl),
+            tested_moisture_pct: Number(destWb.tested_moisture_pct),
+            tested_broken_pct: Number(destWb.tested_broken_pct),
+            tested_foreign_matter_pct: Number(destWb.tested_foreign_matter_pct)
+          })
         });
-        if (res) {
-          const data = await res.json();
-          setSettlementModal(false);
-          setNotification(`Audit Complete! Net Wt: ${data.settlement_audit.destination_net_qtl} qtl. Deductions: ₹${data.settlement_audit.total_deductions}. Final Released: ₹${data.settlement_audit.net_final_released_to_fpo}`);
+        if (res && res.ok) {
+          const d = await res.json();
+          showToast(`अंतिम मिलान पूरा! जारी भुगतान: ₹${d.settlement.final_settled_payout.toLocaleString('en-IN')}`);
+          setShowDestWbModal(null);
+          refreshTradingData();
         }
       };
 
-      // Post Bid
-      const handlePostBid = async (e) => {
-        e.preventDefault();
-        const res = await apiFetch("/api/v1/bids/create", { method: "POST", body: JSON.stringify(bidForm) });
-        if (res) {
-          setNotification("Purchase Bid Broadcasted to Regional FPOs!");
-          fetchBids();
-        }
-      };
-
-      // Accept Bid (FPO)
-      const handleAcceptBid = async (bidId) => {
-        const res = await apiFetch(`/api/v1/bids/${bidId}/accept`, { method: "POST" });
-        if (res) {
-          setNotification("Bid Matched and Contract Locked!");
-          fetchBids();
-        }
-      };
-
-      // Farmer Passbook
-      const openPassbook = async (lotId) => {
-        const res = await apiFetch(`/api/v1/fpo/farmer-passbook/${lotId}`);
-        if (res) setPassbookLot(await res.json());
-      };
+      const activeBestPick = recommendationData?.best_pick;
+      const allListings = recommendationData?.all_listings || [];
 
       return (
-        <div className="w-full flex flex-col min-h-screen">
-          {/* Identity Switcher Bar */}
-          <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between text-xs gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-mono">Simulate Persona:</span>
-              <div className="flex flex-wrap gap-1">
-                {accounts.map(acc => (
-                  <button
-                    key={acc.email}
-                    onClick={() => loginAs(acc.email)}
-                    className={`px-2 py-0.5 rounded font-mono text-[11px] transition ${
-                      currentUser?.email === acc.email ? 'bg-emerald-500 text-black font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}>
-                    {acc.role}: {acc.name.split(" ")[0]}
-                  </button>
-                ))}
+        <div className="min-h-screen flex flex-col">
+          {/* Top Mandi Flash Header */}
+          <header className="bg-[#052418] border-b border-[#1b5e3f] sticky top-0 z-40 shadow-xl">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+              
+              {/* Brand & Mandi Identity */}
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-bold text-2xl shadow-lg border-2 border-amber-300">
+                  🌾
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-amber-400 font-mandi">
+                      किसान व्यापार मंडी डेस्क
+                    </h1>
+                    <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600">
+                      LIVE MANDI TRADING
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-300 font-medium">
+                    National B2B Grain Wholesaler Desk • राष्ट्रीय थोक अनाज मंडी मंच
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {currentUser && (
-              <div className="text-slate-300 font-mono flex items-center gap-2">
-                <span>Active: <strong className="text-white">{currentUser.name}</strong></span>
-                <span className="bg-slate-800 px-2 py-0.5 rounded text-emerald-400 border border-slate-700">{currentUser.role}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation Bar */}
-          <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 md:px-8 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-lg">🌾</div>
-              <div>
-                <h1 className="text-base font-bold text-white tracking-tight">AGRI-EXCHANGE <span className="text-xs text-emerald-400 font-mono">TRADE</span></h1>
-                <p className="text-[10px] text-slate-400">APMC Cess, Bardana Packaging & Cutter Quality Matrix</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="hidden md:flex items-center bg-slate-800/80 p-1 rounded-lg border border-slate-700 gap-1">
-                <button onClick={() => setTab("buyer")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'buyer' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                  Wholesale Terminal
-                </button>
-                <button onClick={() => setTab("auction")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'auction' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                  Double Auction
-                </button>
-                {currentUser?.role === "FPO" && (
-                  <button onClick={() => setTab("fpo")} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === 'fpo' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                    FPO Operations
-                  </button>
+              {/* Persona / Account Switcher */}
+              <div className="flex items-center space-x-2 bg-[#0a3323] p-1.5 rounded-lg border border-[#1d5c3f]">
+                <span className="text-xs text-amber-300 font-semibold pl-2 hidden md:inline">व्यापारी प्रोफाइल:</span>
+                <select
+                  value={currentUser?.email || ""}
+                  onChange={(e) => loginPersona(e.target.value)}
+                  className="bg-[#062418] text-amber-200 text-xs font-semibold py-1.5 px-3 rounded border border-emerald-700/60 focus:outline-none focus:border-amber-400 cursor-pointer"
+                >
+                  {accounts.map(acc => (
+                    <option key={acc.email} value={acc.email}>
+                      {acc.role === "BUYER" ? "🌾" : acc.role === "FPO" ? "🚜" : acc.role === "TRANSPORTER" ? "🚚" : "🏛️"} {acc.name} ({acc.city})
+                    </option>
+                  ))}
+                </select>
+                {currentUser && (
+                  <span className="text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">
+                    {currentUser.role}
+                  </span>
                 )}
               </div>
+            </div>
 
-              <button 
-                onClick={() => setSettlementModal(true)}
-                className="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-xs px-3 py-1.5 rounded-lg font-mono flex items-center gap-1.5 ml-2">
-                <span>⚖️</span> Weighbridge & Cutter
-              </button>
+            {/* Live Ticker Bar */}
+            <div className="bg-[#03170f] border-t border-[#12422c] py-1.5 px-4 overflow-x-auto text-[11px] font-mono text-stone-300 whitespace-nowrap custom-scroll flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <span className="text-amber-400 font-bold flex items-center">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping mr-1.5"></span>
+                  मंडी हाजिर भाव:
+                </span>
+                <span>🌾 गेहूं खन्ना: <b className="text-white">₹2,580</b> <span className="text-emerald-400">(+₹155 vs MSP)</span></span>
+                <span>🌾 गेहूं करनाल: <b className="text-white">₹2,520</b></span>
+                <span>🌾 गेहूं इंदौर: <b className="text-white">₹2,490</b></span>
+                <span>🍚 बासमती 1121: <b className="text-white">₹4,100</b></span>
+                <span>🌻 सरसों कोटा: <b className="text-white">₹5,620</b></span>
+                <span>🌽 मक्का छिंदवाड़ा: <b className="text-white">₹2,240</b></span>
+              </div>
+              <div className="hidden lg:flex items-center space-x-4 text-stone-400">
+                <span>धर्म कांटा छूट: <b>0.30%</b></span>
+                <span>नमी कटौती मानक: <b>11.5%</b> (₹25/0.5%)</span>
+                <span>TCS: <b>0.1%</b></span>
+              </div>
+            </div>
+
+            {/* Main Navigation Tabs */}
+            <div className="max-w-7xl mx-auto px-4 flex space-x-1 sm:space-x-3 overflow-x-auto custom-scroll pt-2">
+              {[
+                { id: "calculator", label: "मंडी भाव व लागत (Landed Bhao)", icon: "🌾" },
+                { id: "bidding", label: "बोली व सौदा (Live Bids)", icon: "⚖️", count: bids.length },
+                { id: "escrow", label: "व्यापार सौदे व अमानत (3-Stage Escrow)", icon: "📋", count: orders.length },
+                { id: "weighbridge", label: "धर्म कांटा व कटी (Weighbridge & Cutter)", icon: "🚛" },
+                { id: "passbook", label: "किसान बही खाता (Farmer Passbook)", icon: "👨‍🌾" },
+                { id: "compliance", label: "सरकारी दस्तावेज़ (M-Form & EWB)", icon: "📜" }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`flex items-center space-x-1.5 px-3.5 py-2.5 text-xs sm:text-sm font-bold rounded-t-lg transition border-t-2 border-x whitespace-nowrap ${
+                    tab === t.id
+                      ? "bg-[#0b3323] text-amber-300 border-amber-400 border-b-0 shadow-lg"
+                      : "bg-[#052015] text-stone-400 border-transparent hover:text-stone-200 hover:bg-[#082a1d]"
+                  }`}
+                >
+                  <span>{t.icon}</span>
+                  <span>{t.label}</span>
+                  {t.count !== undefined && t.count > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-black font-black">
+                      {t.count}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </header>
 
+          {/* Toast Notification */}
           {notification && (
-            <div className="max-w-7xl mx-auto w-full px-4 md:px-8 mt-4">
-              <div className="p-3 bg-emerald-950 border border-emerald-500/60 rounded-xl flex items-center justify-between text-xs text-emerald-200 font-mono">
-                <span>⚡ {notification}</span>
-                <button onClick={() => setNotification(null)} className="text-emerald-400 underline ml-3 font-mono">Dismiss</button>
-              </div>
+            <div className="fixed top-20 right-4 z-50 max-w-md bg-amber-400 text-slate-950 font-bold px-4 py-3 rounded-lg shadow-2xl border-2 border-amber-200 flex items-center space-x-2 animate-bounce">
+              <span className="text-xl">📢</span>
+              <span className="text-xs sm:text-sm">{notification}</span>
             </div>
           )}
 
-          {/* Main Deck */}
-          <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8 space-y-6">
-            {tab === "buyer" && (
-              <div className="space-y-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 items-center">
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">Target Commodity</label>
-                    <select value={commodity} onChange={(e)=>setCommodity(e.target.value)} className="bg-slate-800 border border-slate-700 text-xs rounded p-2 text-white">
-                      <option value="Wheat">Wheat (Gehu)</option>
-                      <option value="Rice">Rice (Chawal)</option>
-                    </select>
+          {/* Main Content Area */}
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full">
+
+            {/* TAB 1: MANDI BHAO & LANDED COST CALCULATOR */}
+            {tab === "calculator" && (
+              <div className="space-y-6">
+                
+                {/* Clean Filter Panel */}
+                <div className="bg-[#092c1d] p-4 sm:p-5 rounded-xl border border-[#1b5d3f] shadow-xl">
+                  <div className="flex items-center justify-between mb-4 border-b border-[#174e35] pb-2">
+                    <h2 className="text-base sm:text-lg font-bold text-amber-300 flex items-center">
+                      <span className="mr-2">🔍</span> शुद्ध लैंडेड भाव कैलकुलेटर (Dynamic Landed Bhao)
+                    </h2>
+                    <span className="text-xs text-stone-300">
+                      मंडी भाव + बारदाना + गाड़ी भाड़ा + मंडी सेस + TCS + बीमा
+                    </span>
                   </div>
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">Receiving Warehouse</label>
-                    <select value={city} onChange={(e)=>setCity(e.target.value)} className="bg-slate-800 border border-slate-700 text-xs rounded p-2 text-white">
-                      <option value="Jalandhar">Jalandhar, Punjab</option>
-                      <option value="Delhi">Delhi NCR</option>
-                    </select>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-300 mb-1">
+                        गंतव्य शहर / मिल (Delivery City):
+                      </label>
+                      <select
+                        value={city}
+                        onChange={e => setCity(e.target.value)}
+                        className="w-full bg-[#051c13] text-stone-100 text-sm font-semibold rounded-lg p-2.5 border border-[#1c6644] focus:outline-none focus:border-amber-400"
+                      >
+                        {CITY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-300 mb-1">
+                        फसल / अनाज (Commodity):
+                      </label>
+                      <select
+                        value={commodity}
+                        onChange={e => setCommodity(e.target.value)}
+                        className="w-full bg-[#051c13] text-stone-100 text-sm font-semibold rounded-lg p-2.5 border border-[#1c6644] focus:outline-none focus:border-amber-400"
+                      >
+                        {CROP_OPTIONS.map(cr => (
+                          <option key={cr.id} value={cr.id}>
+                            {cr.icon} {cr.hindi} (MSP: ₹{cr.msp})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-300 mb-1">
+                        मात्रा (क्विंटल / Quintals):
+                      </label>
+                      <input
+                        type="number"
+                        min="10"
+                        step="10"
+                        value={quantityQtl}
+                        onChange={e => setQuantityQtl(e.target.value)}
+                        className="w-full bg-[#051c13] text-stone-100 text-sm font-mono font-bold rounded-lg p-2.5 border border-[#1c6644] focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-300 mb-1">
+                        बारदाना / पैकिंग (Bagging):
+                      </label>
+                      <select
+                        value={baggingType}
+                        onChange={e => setBaggingType(e.target.value)}
+                        className="w-full bg-[#051c13] text-stone-100 text-xs font-semibold rounded-lg p-2.5 border border-[#1c6644] focus:outline-none focus:border-amber-400"
+                      >
+                        {Object.entries(BAGGING_LABELS).map(([k, v]) => (
+                          <option key={k} value={k}>{v}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                {/* Spot Listings */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                  <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-                    <h3 className="font-bold text-sm text-slate-200">Wholesale Commercial Listings</h3>
-                    <span className="text-xs font-mono text-slate-400">{listings.length} Lots Available</span>
-                  </div>
+                {/* SPOTLIGHT BEST MANDI QUOTE */}
+                {activeBestPick && (
+                  <div className="bg-gradient-to-r from-[#0b3d29] via-[#093222] to-[#0a3826] rounded-2xl border-2 border-amber-400 p-5 sm:p-7 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 bg-amber-400 text-slate-950 font-black text-xs px-4 py-1.5 rounded-bl-xl shadow-lg flex items-center">
+                      <span className="mr-1">★</span> सर्वश्रेष्ठ मंडी सौदा (BEST BUY PICK)
+                    </div>
 
-                  <div className="divide-y divide-slate-800">
-                    {listings.map(item => (
-                      <div key={item.id} className="p-5 flex flex-col lg:flex-row justify-between lg:items-center gap-4 hover:bg-slate-800/30 transition">
-                        <div className="space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-bold text-white">{item.mandi}</span>
-                            <span className="text-xs text-slate-400">({item.variety})</span>
-                            <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-mono px-2 py-0.5 rounded border border-emerald-500/30">
-                              {item.mform_document_hash}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                      
+                      <div className="lg:col-span-5 space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-300 text-xs font-bold border border-emerald-500">
+                            {activeBestPick.mandi} मंडी
+                          </span>
+                          <span className="text-xs text-stone-300 font-medium">
+                            {activeBestPick.fpo_name}
+                          </span>
+                        </div>
+
+                        <div>
+                          <div className="text-xs text-stone-300 font-semibold">शुद्ध लैंडेड भाव (Landed Bhao at {city}):</div>
+                          <div className="flex items-baseline space-x-2">
+                            <span className="text-3xl sm:text-4xl font-black text-amber-300 font-mono">
+                              ₹{activeBestPick.net_landed_cost_per_qtl?.toLocaleString('en-IN')}
                             </span>
-                            <span className="text-[10px] bg-slate-800 text-slate-300 font-mono px-2 py-0.5 rounded">
-                              {item.bagging_type}
-                            </span>
+                            <span className="text-sm font-bold text-stone-300">/ क्विंटल</span>
                           </div>
-                          <p className="text-xs text-slate-400">
-                            {item.fpo_name} • Moisture: <strong className="text-emerald-400">{item.moisture_percent}%</strong> • Stock: {item.available_qty_qtl} qtl
-                          </p>
-                          <div className="text-[11px] text-slate-400 font-mono flex gap-4 pt-1">
-                            <span>Mandi Base: ₹{item.base_price_per_qtl}/qtl</span>
-                            <span>APMC Cess (4%): ₹{item.commercial_breakdown?.apmc_cess_breakdown?.total_cess || 0}</span>
-                            <span>TCS Tax: ₹{item.commercial_breakdown?.tcs_tax || 0}</span>
+                          <div className="text-xs text-emerald-400 font-semibold mt-1">
+                            कुल बिल (Invoice for {quantityQtl} qtl): ₹{activeBestPick.total_order_cost?.toLocaleString('en-IN')}
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between lg:justify-end gap-6 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800">
-                          <div className="text-right">
-                            <div className="text-xs text-slate-400">Net Landed / qtl</div>
-                            <div className="text-lg md:text-xl font-bold font-mono text-emerald-400">
-                              ₹{item.net_landed_cost_per_qtl}
-                            </div>
+                        <div className="flex items-center space-x-2 text-xs">
+                          <span className="text-stone-300">सरकारी MSP (₹{activeBestPick.benchmark_msp}):</span>
+                          <span className={`px-2 py-0.5 rounded font-bold ${activeBestPick.is_above_msp ? 'bg-amber-900/60 text-amber-300 border border-amber-500' : 'bg-emerald-900/60 text-emerald-300 border border-emerald-500'}`}>
+                            {activeBestPick.msp_badge}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-4 bg-[#052116]/80 p-3.5 rounded-xl border border-[#1b5d3f] text-xs space-y-2 font-mono">
+                        <div className="font-sans font-bold text-amber-300 text-xs pb-1 border-b border-[#12422c]">
+                          पारदर्शी भाव विभाजन (Breakdown / qtl):
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-300">मंडी मूल भाव (Base Bhao):</span>
+                          <span className="font-bold text-white">₹{activeBestPick.commercial_breakdown?.formula_per_qtl?.mandi_base_price?.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-300">बारदाना पैकिंग (Bardana):</span>
+                          <span className="text-white">+₹{activeBestPick.commercial_breakdown?.formula_per_qtl?.packaging?.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-300">गाड़ी भाड़ा ({activeBestPick.distance_km} km):</span>
+                          <span className="text-white">+₹{activeBestPick.commercial_breakdown?.formula_per_qtl?.highway_freight?.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-300">मंडी सेस + RDF:</span>
+                          <span className="text-white">+₹{activeBestPick.commercial_breakdown?.formula_per_qtl?.apmc_state_cess?.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-300">TCS (0.1%) + बीमा (0.08%):</span>
+                          <span className="text-white">+₹{(Number(activeBestPick.commercial_breakdown?.formula_per_qtl?.tcs || 0) + Number(activeBestPick.commercial_breakdown?.formula_per_qtl?.transit_risk || 0)).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between pt-1 border-t border-[#12422c] text-amber-300 font-bold text-sm">
+                          <span>शुद्ध लैंडेड भाव:</span>
+                          <span>₹{activeBestPick.net_landed_cost_per_qtl?.toFixed(2)}</span>
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-3 space-y-3">
+                        <div className="bg-[#052116]/80 p-3 rounded-xl border border-[#1b5d3f] text-xs">
+                          <div className="text-amber-300 font-bold mb-1 flex items-center">
+                            <span className="mr-1">🚛</span> हाइवे मौसम (Route Weather):
+                          </div>
+                          <div className="text-stone-300">
+                            {activeBestPick.waypoint_name}
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] mt-1">
+                            <span>दूरी: <b>{activeBestPick.distance_km} km</b></span>
+                            <span>समय: <b>~{activeBestPick.transit_hours} घंटे</b></span>
+                          </div>
+                          <div className="mt-1 text-[11px] text-emerald-300 font-semibold">
+                            {activeBestPick.spoilage_alert}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => setShowBuyModal(activeBestPick)}
+                            className="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg text-sm shadow-lg transition flex items-center justify-center space-x-1"
+                          >
+                            <span>⚡ सौदा पक्का करें (Lock Deal)</span>
+                          </button>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setShowSampleModal(activeBestPick)}
+                              className="py-1.5 bg-[#0e3b28] hover:bg-[#154d35] text-stone-200 text-xs font-bold rounded-lg border border-[#206948] transition"
+                            >
+                              📦 1kg नमूना (₹450)
+                            </button>
+                            <button
+                              onClick={() => setShowAssayingModal(activeBestPick)}
+                              className="py-1.5 bg-[#0e3b28] hover:bg-[#154d35] text-stone-200 text-xs font-bold rounded-lg border border-[#206948] transition"
+                            >
+                              🔬 लैब जांच रिपोर्ट
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+
+                {/* MANDI-WISE COMPARISON TABLE */}
+                <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] overflow-hidden shadow-xl">
+                  <div className="p-4 border-b border-[#174e35] flex items-center justify-between">
+                    <h3 className="text-base font-bold text-amber-300 flex items-center">
+                      <span className="mr-2">📊</span> सभी उपलब्ध मंडियों के भाव (All Mandi Spot & Landed Quotes)
+                    </h3>
+                    <span className="text-xs text-stone-300 font-mono">
+                      कुल मंडियां: {allListings.length}
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-stone-200">
+                      <thead className="bg-[#062217] text-stone-300 text-[11px] uppercase tracking-wider font-semibold border-b border-[#174e35]">
+                        <tr>
+                          <th className="p-3">मंडी एवं राज्य</th>
+                          <th className="p-3">FPO संस्था</th>
+                          <th className="p-3">उपलब्ध मात्रा</th>
+                          <th className="p-3">मंडी मूल भाव</th>
+                          <th className="p-3">गाड़ी भाड़ा</th>
+                          <th className="p-3">शुद्ध लैंडेड भाव</th>
+                          <th className="p-3">नमी %</th>
+                          <th className="p-3 text-right">सौदा क्रिया</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#13442e]">
+                        {allListings.map(lot => (
+                          <tr key={lot.id} className="hover:bg-[#0c3725] transition font-mono">
+                            <td className="p-3 font-sans font-bold text-white">
+                              {lot.mandi}
+                              <div className="text-[10px] text-stone-400 font-mono">{lot.distance_km} km</div>
+                            </td>
+                            <td className="p-3 font-sans text-stone-300">{lot.fpo_name}</td>
+                            <td className="p-3 font-bold text-white">{lot.available_qty_qtl} क्विंटल</td>
+                            <td className="p-3 text-amber-300 font-bold">₹{lot.base_price_per_qtl}</td>
+                            <td className="p-3 text-stone-300">₹{lot.freight_per_qtl?.toFixed(2)}</td>
+                            <td className="p-3 text-amber-400 font-black text-sm">
+                              ₹{lot.net_landed_cost_per_qtl?.toLocaleString('en-IN')}
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${lot.moisture_percent <= 11.5 ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'}`}>
+                                {lot.moisture_percent}%
+                              </span>
+                            </td>
+                            <td className="p-3 text-right space-x-2 font-sans">
+                              <button
+                                onClick={() => setShowBuyModal(lot)}
+                                className="px-3 py-1 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow"
+                              >
+                                सौदा करें
+                              </button>
+                              <button
+                                onClick={() => setShowSampleModal(lot)}
+                                className="px-2 py-1 rounded bg-[#10422c] hover:bg-[#17563b] text-stone-200 text-xs border border-emerald-600"
+                              >
+                                नमूना
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* TAB 2: LIVE BIDS & DOUBLE AUCTION */}
+            {tab === "bidding" && (
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-4 bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
+                  <div>
+                    <h2 className="text-lg font-bold text-amber-300 flex items-center">
+                      <span className="mr-2">⚖️</span> लाइव बोली व सौदा कक्ष (Double-Auction Bidding Desk)
+                    </h2>
+                    <p className="text-xs text-stone-300">
+                      खरीदार अपनी मांग व लक्ष्य भाव की बोली लगाते हैं; FPO स्वीकार कर सकते हैं या पलट भाव (Counter Offer) दे सकते हैं।
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowNewBidModal(true)}
+                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg text-xs shadow-lg transition flex items-center space-x-1"
+                  >
+                    <span>+ नई बोली लगाएं (Place Buyer Bid)</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {bids.map(bid => {
+                    const isOpen = bid.status === "OPEN_AUCTION";
+                    const isCounter = bid.status === "COUNTER_OFFERED";
+                    const isLocked = bid.status === "ACCEPTED" || bid.status === "TRADE_LOCKED";
+
+                    return (
+                      <div key={bid.bid_id} className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] p-4 space-y-3 shadow-xl flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-xs font-bold text-amber-300">{bid.bid_id}</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              isOpen ? 'bg-blue-900/80 text-blue-300 border border-blue-600' :
+                              isCounter ? 'bg-amber-900/80 text-amber-300 border border-amber-600 animate-pulse' :
+                              'bg-emerald-900/80 text-emerald-300 border border-emerald-600'
+                            }`}>
+                              {isOpen ? "खुलती बोली (OPEN)" : isCounter ? "पलट भाव (COUNTER)" : "सौदा पक्का (LOCKED)"}
+                            </span>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => setSampleModalLot(item)}
-                              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded-lg font-mono">
-                              Request 1kg Sample
-                            </button>
-                            {currentUser?.role === "BUYER" ? (
-                              <button 
-                                onClick={() => setSelectedLot(item)}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition">
-                                Escrow Buy (100 qtl)
-                              </button>
-                            ) : (
-                              <span className="text-[10px] text-slate-500 bg-slate-800 px-2 py-1.5 rounded font-mono">Buyer Role Only</span>
+                          <div className="mt-2">
+                            <div className="text-sm font-bold text-white">{bid.buyer_name}</div>
+                            <div className="text-xs text-stone-400">गंतव्य: {bid.delivery_city}</div>
+                          </div>
+
+                          <div className="bg-[#051c13] p-2.5 rounded-lg border border-[#164d34] my-2 text-xs font-mono space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-stone-400">फसल:</span>
+                              <span className="font-bold text-white">{bid.commodity}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-stone-400">मांग मात्रा:</span>
+                              <span className="font-bold text-white">{bid.target_qty_qtl} क्विंटल</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-stone-400">खरीदार लक्ष्य भाव:</span>
+                              <span className="font-black text-amber-300">₹{bid.target_bid_price_per_qtl} / qtl</span>
+                            </div>
+
+                            {isCounter && (
+                              <div className="pt-1.5 border-t border-[#164d34] text-amber-300">
+                                <div className="flex justify-between font-bold">
+                                  <span>FPO पलट भाव:</span>
+                                  <span>₹{bid.counter_price_per_qtl} / qtl</span>
+                                </div>
+                                <div className="text-[10px] text-stone-300 italic mt-0.5">
+                                  "{bid.counter_notes}"
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>
+
+                        <div className="pt-2 border-t border-[#164d34] flex items-center space-x-2">
+                          {isOpen && (
+                            <>
+                              <button
+                                onClick={() => handleAcceptBid(bid.bid_id)}
+                                className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded transition"
+                              >
+                                ✓ सौदा मंजूर
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowCounterModal(bid);
+                                  setCounterPrice(bid.target_bid_price_per_qtl + 40);
+                                }}
+                                className="py-1.5 px-3 bg-[#134931] hover:bg-[#1a5d3e] text-amber-300 font-bold text-xs rounded border border-amber-500/40 transition"
+                              >
+                                पलट भाव
+                              </button>
+                            </>
+                          )}
+
+                          {isCounter && (
+                            <button
+                              onClick={() => handleAcceptCounter(bid.bid_id)}
+                              className="w-full py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded shadow transition"
+                            >
+                              ✓ पलट भाव स्वीकारें (₹{bid.counter_price_per_qtl})
+                            </button>
+                          )}
+
+                          {isLocked && (
+                            <div className="w-full text-center text-xs text-emerald-400 font-bold py-1 bg-emerald-950/60 rounded border border-emerald-800">
+                              सौदा पूर्ण • अमानत खाता सक्रिय
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ))}
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: ORDERS & 3-STAGE ESCROW */}
+            {tab === "escrow" && (
+              <div className="space-y-6">
+                <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
+                  <h2 className="text-lg font-bold text-amber-300 flex items-center">
+                    <span className="mr-2">📋</span> सक्रिय व्यापार सौदे एवं 3-चरणीय सुरक्षित अमानत
+                  </h2>
+                  <p className="text-xs text-stone-300 mt-1">
+                    चरण 1: सौदा पक्का होते ही 20% अग्रिम लॉक • चरण 2: रवानगी कांटा पर्ची पर 70% जारी • चरण 3: गंतव्य कांटा व नमी मिलान पर 10% अंतिम निपटारा
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {orders.map(order => {
+                    const milestones = order.escrow_stages || {};
+                    const isAdvLocked = order.status === "ADVANCE_ESCROW_LOCKED";
+                    const isDispatched = order.status === "DISPATCHED_70_RELEASED";
+                    const isSettled = order.status === "DELIVERED_AND_SETTLED";
+
+                    return (
+                      <div key={order.order_id} className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] p-5 shadow-xl space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#164d34] pb-3">
+                          <div>
+                            <span className="text-xs font-mono font-bold text-amber-400 mr-2">{order.order_id}</span>
+                            <span className="text-xs text-stone-300">ई-वे बिल: <b className="text-white font-mono">{order.eway_bill_no}</b></span>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded text-xs font-bold ${
+                            isAdvLocked ? 'bg-amber-900/80 text-amber-300 border border-amber-500' :
+                            isDispatched ? 'bg-blue-900/80 text-blue-300 border border-blue-500' :
+                            'bg-emerald-900/80 text-emerald-300 border border-emerald-500'
+                          }`}>
+                            {isAdvLocked ? "चरण 1: 20% पेशगी लॉक" : isDispatched ? "चरण 2: 70% गाड़ी रवानगी जारी" : "चरण 3: अंतिम निपटारा पूर्ण"}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#051c13] p-3 rounded-lg border border-[#164d34] text-xs font-mono">
+                          <div>
+                            <div className="text-stone-400">खरीदार:</div>
+                            <div className="font-bold text-white font-sans">{order.buyer_name}</div>
+                          </div>
+                          <div>
+                            <div className="text-stone-400">मात्रा:</div>
+                            <div className="font-bold text-white">{order.quantity_qtl} क्विंटल</div>
+                          </div>
+                          <div>
+                            <div className="text-stone-400">मूल भाव:</div>
+                            <div className="font-bold text-amber-300">₹{order.base_price_per_qtl}/qtl</div>
+                          </div>
+                          <div>
+                            <div className="text-stone-400">कुल इनवॉइस:</div>
+                            <div className="font-black text-amber-400">₹{order.total_invoice_amount?.toLocaleString('en-IN')}</div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="text-xs font-semibold text-stone-300">अमानत वितरण चरण (Escrow Lifecycle):</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+                            <div className={`p-3 rounded-lg border ${isAdvLocked || isDispatched || isSettled ? 'bg-[#0d3b27] border-emerald-500 text-emerald-200' : 'bg-[#051c13] border-[#164d34] text-stone-400'}`}>
+                              <div className="font-bold flex items-center justify-between">
+                                <span>चरण 1: 20% अग्रिम</span>
+                                <span>✓</span>
+                              </div>
+                              <div className="text-sm font-black text-amber-300 mt-1">₹{milestones.stage_1_advance_20?.amount?.toLocaleString('en-IN')}</div>
+                              <div className="text-[10px] text-stone-300">सौदा पुष्टि पर लॉक</div>
+                            </div>
+
+                            <div className={`p-3 rounded-lg border ${isDispatched || isSettled ? 'bg-[#0d3b27] border-emerald-500 text-emerald-200' : 'bg-[#051c13] border-[#164d34] text-stone-400'}`}>
+                              <div className="font-bold flex items-center justify-between">
+                                <span>चरण 2: 70% रवानगी</span>
+                                <span>{isDispatched || isSettled ? "✓ जारी" : "प्रतीक्षारत"}</span>
+                              </div>
+                              <div className="text-sm font-black text-amber-300 mt-1">₹{milestones.stage_2_dispatch_70?.amount?.toLocaleString('en-IN')}</div>
+                              <div className="text-[10px] text-stone-300">रवानगी कांटा पर्ची पर जारी</div>
+                            </div>
+
+                            <div className={`p-3 rounded-lg border ${isSettled ? 'bg-[#0d3b27] border-emerald-500 text-emerald-200' : 'bg-[#051c13] border-[#164d34] text-stone-400'}`}>
+                              <div className="font-bold flex items-center justify-between">
+                                <span>चरण 3: 10% निपटारा</span>
+                                <span>{isSettled ? "✓ पूरा" : "प्रतीक्षारत"}</span>
+                              </div>
+                              <div className="text-sm font-black text-amber-300 mt-1">
+                                ₹{(order.final_settled_payout ? (order.final_settled_payout - (milestones.stage_1_advance_20?.amount + milestones.stage_2_dispatch_70?.amount)) : milestones.stage_3_delivery_10?.amount)?.toLocaleString('en-IN')}
+                              </div>
+                              <div className="text-[10px] text-stone-300">नमी व कांटा मिलान के बाद</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[#164d34]">
+                          {isAdvLocked && (
+                            <button
+                              onClick={() => setShowOriginWbModal(order)}
+                              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded shadow transition"
+                            >
+                              🚛 रवानगी कांटा पर्ची अपलोड (Release 70%)
+                            </button>
+                          )}
+
+                          {isDispatched && (
+                            <button
+                              onClick={() => setShowDestWbModal(order)}
+                              className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded shadow transition"
+                            >
+                              ⚖️ गंतव्य कांटा व नमी कटी मिलान (Final Settlement)
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => setShowEwayModal(order)}
+                            className="px-3 py-1.5 bg-[#0e3b28] hover:bg-[#154d35] text-stone-200 font-bold text-xs rounded border border-[#206948]"
+                          >
+                            ई-वे बिल देखें
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: WEIGHBRIDGE & QUALITY CUTTER AUDIT */}
+            {tab === "weighbridge" && (
+              <div className="space-y-6">
+                <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
+                  <h2 className="text-lg font-bold text-amber-300 flex items-center">
+                    <span className="mr-2">🚛</span> धर्म कांटा तौल पर्ची व नमी कटी ऑडिट (Weighbridge & Quality Cutter)
+                  </h2>
+                  <p className="text-xs text-stone-300 mt-1">
+                    धर्म कांटा वजन मिलान में 0.30% तक की प्राकृतिक सूख छूट मान्य है। 11.5% से अधिक नमी पर प्रत्येक 0.50% अधिकता पर ₹25/क्विंटल की कटी स्वचालित रूप से काटी जाती है।
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Origin Weighbridge Entry */}
+                  <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] p-5 space-y-4 shadow-xl">
+                    <h3 className="text-sm font-bold text-amber-300 flex items-center pb-2 border-b border-[#164d34]">
+                      <span className="mr-1.5">1️⃣</span> रवानगी धर्म कांटा पर्ची (Origin Gross Slip)
+                    </h3>
+                    
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <label className="block text-stone-300 mb-1">सकल वजन / Gross Weight (क्विंटल):</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={originWb.gross_weight_qtl}
+                          onChange={e => setOriginWb({ ...originWb, gross_weight_qtl: e.target.value })}
+                          className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-stone-300 mb-1">खाली गाड़ी वजन / Tare Weight (क्विंटल):</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={originWb.tare_weight_qtl}
+                          onChange={e => setOriginWb({ ...originWb, tare_weight_qtl: e.target.value })}
+                          className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
+                        />
+                      </div>
+
+                      <div className="bg-[#051c13] p-3 rounded-lg border border-[#164d34] font-mono">
+                        <div className="flex justify-between text-stone-300">
+                          <span>रवानगी शुद्ध वजन (Origin Net Wt):</span>
+                          <span className="text-amber-300 font-black text-sm">
+                            {(Number(originWb.gross_weight_qtl) - Number(originWb.tare_weight_qtl)).toFixed(2)} क्विंटल
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Destination Weighbridge & Moisture Check */}
+                  <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] p-5 space-y-4 shadow-xl">
+                    <h3 className="text-sm font-bold text-amber-300 flex items-center pb-2 border-b border-[#164d34]">
+                      <span className="mr-1.5">2️⃣</span> गंतव्य कांटा व नमी परीक्षण (Destination Audit & Cutter)
+                    </h3>
+
+                    <div className="space-y-3 text-xs">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-stone-300 mb-1">गंतव्य सकल वजन (Gross):</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={destWb.gross_weight_qtl}
+                            onChange={e => setDestWb({ ...destWb, gross_weight_qtl: e.target.value })}
+                            className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-stone-300 mb-1">खाली गाड़ी (Tare):</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={destWb.tare_weight_qtl}
+                            onChange={e => setDestWb({ ...destWb, tare_weight_qtl: e.target.value })}
+                            className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-stone-300 mb-1">परीक्षित नमी % (Tested Moisture):</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={destWb.tested_moisture_pct}
+                          onChange={e => setDestWb({ ...destWb, tested_moisture_pct: e.target.value })}
+                          className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
+                        />
+                      </div>
+
+                      {(() => {
+                        const destNet = Number(destWb.gross_weight_qtl) - Number(destWb.tare_weight_qtl);
+                        const origNet = Number(originWb.gross_weight_qtl) - Number(originWb.tare_weight_qtl);
+                        const loss = Math.max(0, origNet - destNet);
+                        const lossPct = origNet > 0 ? (loss / origNet) * 100 : 0;
+
+                        const excessMoisture = Math.max(0, Number(destWb.tested_moisture_pct) - 11.5);
+                        const increments = Math.floor(excessMoisture / 0.5);
+                        const cutterRate = increments * 25.0;
+
+                        return (
+                          <div className="bg-[#051c13] p-3 rounded-lg border border-[#164d34] font-mono space-y-1.5">
+                            <div className="flex justify-between text-stone-300">
+                              <span>गंतव्य शुद्ध वजन:</span>
+                              <span className="font-bold text-white">{destNet.toFixed(2)} qtl</span>
+                            </div>
+                            <div className="flex justify-between text-stone-300">
+                              <span>परिवहन वजन कमी:</span>
+                              <span className={lossPct > 0.3 ? 'text-red-400 font-bold' : 'text-emerald-400'}>
+                                {loss.toFixed(2)} qtl ({lossPct.toFixed(2)}%)
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-stone-300">
+                              <span>नमी कटी दर (11.5% के ऊपर):</span>
+                              <span className="font-bold text-amber-400">₹{cutterRate}/क्विंटल</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {tab === "auction" && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-                  <h3 className="text-sm font-bold text-white">Post Purchase Bid</h3>
-                  {currentUser?.role === "BUYER" ? (
-                    <form onSubmit={handlePostBid} className="space-y-3">
-                      <div>
-                        <label className="text-xs text-slate-400 block mb-1">Target Rate (₹/qtl)</label>
-                        <input type="number" required value={bidForm.target_bid_price_per_qtl} onChange={(e)=>setBidForm({...bidForm, target_bid_price_per_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 text-xs rounded text-white font-mono"/>
-                      </div>
-                      <div>
-                        <label className="text-xs text-slate-400 block mb-1">Target Volume (qtl)</label>
-                        <input type="number" required value={bidForm.target_qty_qtl} onChange={(e)=>setBidForm({...bidForm, target_qty_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 text-xs rounded text-white font-mono"/>
-                      </div>
-                      <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs">
-                        Post to Auction Board
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="p-4 bg-slate-950 rounded text-xs text-slate-500 text-center">Only registered Buyers can post bids.</div>
-                  )}
+            {/* TAB 5: FARMER MEMBER PASSBOOK */}
+            {tab === "passbook" && (
+              <div className="space-y-6">
+                <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f] flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-amber-300 flex items-center">
+                      <span className="mr-2">👨‍🌾</span> किसान सदस्य बही खाता (FPO Member Pool Passbook)
+                    </h2>
+                    <p className="text-xs text-stone-300 mt-0.5">
+                      FPO द्वारा एकत्रित लॉट के अंतर्गत प्रत्येक किसान का अंशदान और सौदा पूरा होने पर सीधा बैंक हस्तांतरण विवरण।
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-stone-300">लॉट चुनें:</span>
+                    <select
+                      value={selectedPassbookLot}
+                      onChange={e => setSelectedPassbookLot(e.target.value)}
+                      className="bg-[#051c13] text-amber-300 text-xs font-bold rounded p-2 border border-[#1c6644]"
+                    >
+                      <option value="LOT-WHEAT-KHN-01">LOT-WHEAT-KHN-01 (खन्ना मंडी, पंजाब)</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-                  <h3 className="text-sm font-bold text-white">Live Double-Auction Order Board</h3>
-                  {liveBids.map(bid => (
-                    <div key={bid.bid_id} className="bg-slate-950 p-3.5 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                {passbook && (
+                  <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] overflow-hidden shadow-xl">
+                    <div className="p-4 bg-[#062217] border-b border-[#164d34] flex flex-wrap justify-between items-center text-xs font-mono">
                       <div>
-                        <div className="font-bold text-white">{bid.buyer_name} ({bid.commodity})</div>
-                        <div className="text-slate-400">{bid.target_qty_qtl} qtl @ ₹{bid.target_bid_price_per_qtl}/qtl</div>
+                        <span className="text-stone-400">संस्था:</span> <b className="text-white font-sans">{passbook.fpo_name}</b> ({passbook.mandi})
                       </div>
-                      {currentUser?.role === "FPO" && bid.status === "OPEN_AUCTION" ? (
-                        <button onClick={() => handleAcceptBid(bid.bid_id)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded">
-                          Accept Contract (FPO)
-                        </button>
-                      ) : (
-                        <span className="text-slate-400 font-mono text-[11px]">{bid.status}</span>
-                      )}
+                      <div className="space-x-4">
+                        <span>कुल पूल्ड माल: <b className="text-amber-300">{passbook.total_pool_qty_qtl} क्विंटल</b></span>
+                        <span>सौदा भाव: <b className="text-amber-300">₹{passbook.settled_base_price_per_qtl}/qtl</b></span>
+                      </div>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-stone-200">
+                        <thead className="bg-[#041a11] text-stone-400 font-semibold border-b border-[#164d34]">
+                          <tr>
+                            <th className="p-3.5">किसान का नाम</th>
+                            <th className="p-3.5">गांव / जिला</th>
+                            <th className="p-3.5">सब्मिट मात्रा</th>
+                            <th className="p-3.5">सकल देय राशि</th>
+                            <th className="p-3.5">FPO खर्च (1.5%)</th>
+                            <th className="p-3.5">शुद्ध बैंक भुगतान</th>
+                            <th className="p-3.5 text-right">भुगतान स्थिति</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#13442e] font-mono">
+                          {passbook.farmer_records?.map(f => (
+                            <tr key={f.farmer_id} className="hover:bg-[#0c3725] transition">
+                              <td className="p-3.5 font-sans font-bold text-white">{f.farmer_name}</td>
+                              <td className="p-3.5 font-sans text-stone-300">{f.village}</td>
+                              <td className="p-3.5 font-bold text-white">{f.pool_quantity_qtl} qtl</td>
+                              <td className="p-3.5 text-stone-200">₹{f.gross_payable?.toLocaleString('en-IN')}</td>
+                              <td className="p-3.5 text-red-300">-₹{f.fpo_handling_deduction?.toFixed(2)}</td>
+                              <td className="p-3.5 text-emerald-400 font-black text-sm">
+                                ₹{f.net_disbursed_to_bank?.toLocaleString('en-IN')}
+                              </td>
+                              <td className="p-3.5 text-right">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600 font-sans">
+                                  ✓ भुगतान तैयार
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {tab === "fpo" && (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="text-base font-bold text-white">FPO Farmer Member Payout Allocations</h3>
-                <div className="space-y-2">
-                  {listings.map(l => (
-                    <div key={l.id} className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                      <div>
-                        <span className="font-bold text-white">{l.id} — {l.variety}</span>
-                        <span className="text-slate-400 block">{l.available_qty_qtl} qtl pooled</span>
-                      </div>
-                      <button onClick={() => openPassbook(l.id)} className="bg-slate-800 hover:bg-emerald-600 text-slate-200 px-3 py-1.5 rounded font-mono">
-                        View Member Ledger
-                      </button>
-                    </div>
-                  ))}
+            {/* TAB 6: COMPLIANCE & SAMPLES */}
+            {tab === "compliance" && (
+              <div className="space-y-6">
+                <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
+                  <h2 className="text-lg font-bold text-amber-300 flex items-center">
+                    <span className="mr-2">📜</span> सरकारी अनुपालन एवं नमूना ट्रैकिंग (M-Form & E-Way Bill)
+                  </h2>
+                  <p className="text-xs text-stone-300 mt-1">
+                    राज्य कृषि विपणन बोर्ड डिजिटल एम-फॉर्म, 12-अंकीय जीएसटी ई-वे बिल तथा 1 किग्रा सीलबंद नमूना कूरियर रिकॉर्ड।
+                  </p>
+                </div>
+
+                <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] overflow-hidden shadow-xl">
+                  <div className="p-4 border-b border-[#164d34] flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-amber-300">📦 1 किग्रा सीलबंद नमूना ट्रैकिंग (Dispatched Samples)</h3>
+                    <span className="text-xs text-stone-400 font-mono">कुल नमूने: {samples.length}</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-stone-200 font-mono">
+                      <thead className="bg-[#062217] text-stone-400 border-b border-[#164d34]">
+                        <tr>
+                          <th className="p-3">नमूना आईडी</th>
+                          <th className="p-3">लॉट नंबर</th>
+                          <th className="p-3">खरीदार</th>
+                          <th className="p-3">कूरियर पार्टनर</th>
+                          <th className="p-3">ट्रैकिंग नंबर</th>
+                          <th className="p-3">शुल्क</th>
+                          <th className="p-3 text-right">स्थिति</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#13442e]">
+                        {samples.map(s => (
+                          <tr key={s.sample_id} className="hover:bg-[#0c3725]">
+                            <td className="p-3 font-bold text-amber-300">{s.sample_id}</td>
+                            <td className="p-3 text-white">{s.lot_id}</td>
+                            <td className="p-3 font-sans text-stone-300">{s.buyer_name}</td>
+                            <td className="p-3 font-sans">{s.courier_partner}</td>
+                            <td className="p-3 text-amber-200 font-bold">{s.courier_tracking_no}</td>
+                            <td className="p-3">₹{s.fee_paid}</td>
+                            <td className="p-3 text-right font-sans">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-900/80 text-blue-300 border border-blue-600">
+                                {s.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
           </main>
 
-          {/* Sample Courier Modal */}
-          {sampleModalLot && (
-            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-md w-full space-y-4">
-                <h3 className="font-bold text-base text-white">Request Pre-Purchase Sealed Sample (1 kg)</h3>
-                <p className="text-xs text-slate-400">
-                  A representative sample from Lot {sampleModalLot.id} ({sampleModalLot.variety}) will be sealed at Khanna mandi in a tamper-evident pouch and dispatched via express courier to your lab.
-                </p>
-                <div className="bg-slate-950 p-3 rounded font-mono text-xs space-y-1">
-                  <div className="flex justify-between"><span>Courier Fee:</span><span>₹450.00</span></div>
-                  <div className="flex justify-between text-emerald-400"><span>Reservation Window:</span><span>48 Hours Post-Delivery</span></div>
+          {/* BUY MODAL */}
+          {showBuyModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-lg w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <h3 className="text-base font-bold text-amber-300">⚡ सौदा पक्का करें (Confirm Trade & Advance Escrow)</h3>
+                  <button onClick={() => setShowBuyModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleRequestSample(sampleModalLot)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs uppercase font-mono">
-                    Pay ₹450 & Dispatch
-                  </button>
-                  <button onClick={() => setSampleModalLot(null)} className="bg-slate-800 px-4 py-2 rounded text-xs text-slate-400">Cancel</button>
+
+                <div className="space-y-3 text-xs">
+                  <div className="bg-[#051c13] p-3 rounded-lg border border-[#164d34] space-y-1 font-mono">
+                    <div className="flex justify-between text-stone-300">
+                      <span>मंडी / FPO:</span>
+                      <span className="font-bold text-white font-sans">{showBuyModal.mandi} ({showBuyModal.fpo_name})</span>
+                    </div>
+                    <div className="flex justify-between text-stone-300">
+                      <span>फसल एवं मात्रा:</span>
+                      <span className="font-bold text-white">{commodity} • {quantityQtl} क्विंटल</span>
+                    </div>
+                    <div className="flex justify-between text-stone-300">
+                      <span>शुद्ध लैंडेड भाव:</span>
+                      <span className="font-bold text-amber-300">₹{showBuyModal.net_landed_cost_per_qtl} / qtl</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-[#164d34] text-amber-400 font-bold text-sm">
+                      <span>कुल इनवॉइस:</span>
+                      <span>₹{showBuyModal.total_order_cost?.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-400 font-bold">
+                      <span>चरण 1 पेशगी अमानत (20% Advance):</span>
+                      <span>₹{showBuyModal.escrow_milestones?.advance_20?.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-stone-300 mb-1">डिलिवरी पता (Mill Address):</label>
+                    <textarea
+                      rows="2"
+                      value={deliveryAddress}
+                      onChange={e => setDeliveryAddress(e.target.value)}
+                      className="w-full bg-[#051c13] text-stone-100 p-2 rounded border border-[#1c6644]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-stone-300 mb-1">GSTIN नंबर:</label>
+                    <input
+                      type="text"
+                      value={gstin}
+                      onChange={e => setGstin(e.target.value)}
+                      className="w-full bg-[#051c13] text-stone-100 font-mono p-2 rounded border border-[#1c6644]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button onClick={() => setShowBuyModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
+                  <button onClick={() => handleExecuteBuy(showBuyModal)} className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">20% अमानत जमा कर सौदा पक्का करें</button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Commercial Checkout Drawer */}
-          {selectedLot && (
-            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-start border-b border-slate-800 pb-3">
-                  <div>
-                    <h3 className="font-bold text-base text-white">{selectedLot.variety} ({selectedLot.commodity})</h3>
-                    <p className="text-xs text-slate-400">{selectedLot.fpo_name} • {selectedLot.mandi}</p>
-                  </div>
-                  <button onClick={() => setSelectedLot(null)} className="text-slate-400 hover:text-white">✕</button>
+          {/* SAMPLE MODAL */}
+          {showSampleModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <h3 className="text-base font-bold text-amber-300">📦 1 किग्रा सीलबंद नमूना मांगें</h3>
+                  <button onClick={() => setShowSampleModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
                 </div>
 
-                <form onSubmit={handleExecuteBuy} className="space-y-4">
+                <div className="space-y-3 text-xs">
+                  <div className="bg-[#051c13] p-3 rounded-lg border border-[#164d34] space-y-1 font-mono">
+                    <div>लॉट: <b className="text-white">{showSampleModal.id}</b> ({showSampleModal.mandi})</div>
+                    <div>कूरियर शुल्क: <b className="text-amber-300">₹450.00 (Flat Fee)</b></div>
+                  </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Select Packaging / Bagging Type (Bardana)</label>
-                    <select value={baggingType} onChange={(e)=>setBaggingType(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white">
-                      <option value="50KG_JUTE_GUNNY">50 kg New Jute Bags (B-Twill) [+₹65/qtl]</option>
-                      <option value="50KG_PP_BAG">50 kg HDPE Woven PP Bags [+₹28/qtl]</option>
-                      <option value="BULK_LOOSE_TIPPER">Bulk Tipper Loading (Loose Grain) [₹0]</option>
+                    <label className="block text-stone-300 mb-1">कूरियर प्राप्ति का पता:</label>
+                    <textarea
+                      rows="2"
+                      value={deliveryAddress}
+                      onChange={e => setDeliveryAddress(e.target.value)}
+                      className="w-full bg-[#051c13] text-stone-100 p-2 rounded border border-[#1c6644]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button onClick={() => setShowSampleModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
+                  <button onClick={() => handleRequestSample(showSampleModal)} className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">₹450 भुगतान कर नमूना मंगवाएं</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* LAB ASSAYING REPORT MODAL */}
+          {showAssayingModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-emerald-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <h3 className="text-base font-bold text-emerald-300">🔬 NABL प्रयोगशाला गुणवत्ता रिपोर्ट</h3>
+                  <button onClick={() => setShowAssayingModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
+                </div>
+
+                <div className="space-y-2 text-xs font-mono bg-[#051c13] p-4 rounded-xl border border-[#164d34]">
+                  <div className="text-amber-300 font-sans font-bold pb-1 border-b border-[#164d34]">
+                    {showAssayingModal.mandi} मंडी • {showAssayingModal.commodity} ({showAssayingModal.variety})
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-300">नमी (Moisture):</span>
+                    <span className="font-bold text-white">{showAssayingModal.moisture_percent}% (मानक 11.5%)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-300">कचरा / धूल:</span>
+                    <span className="font-bold text-white">{showAssayingModal.assaying?.foreign_matter_pct || 0.6}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-300">टूटे दाने:</span>
+                    <span className="font-bold text-white">{showAssayingModal.assaying?.broken_pct || 1.2}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-300">प्रोटीन:</span>
+                    <span className="font-bold text-white">{showAssayingModal.assaying?.protein_pct || 11.4}%</span>
+                  </div>
+                </div>
+
+                <button onClick={() => setShowAssayingModal(null)} className="w-full py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">बंद करें</button>
+              </div>
+            </div>
+          )}
+
+          {/* NEW BID MODAL */}
+          {showNewBidModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <h3 className="text-base font-bold text-amber-300">+ नई बोली दर्ज करें (Submit Bid)</h3>
+                  <button onClick={() => setShowNewBidModal(false)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
+                </div>
+
+                <form onSubmit={handleCreateBid} className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-stone-300 mb-1">फसल:</label>
+                    <select
+                      value={bidForm.commodity}
+                      onChange={e => setBidForm({ ...bidForm, commodity: e.target.value })}
+                      className="w-full bg-[#051c13] text-stone-100 p-2.5 rounded border border-[#1c6644]"
+                    >
+                      {CROP_OPTIONS.map(c => <option key={c.id} value={c.id}>{c.hindi}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-stone-300 mb-1">मात्रा (क्विंटल):</label>
+                    <input
+                      type="number"
+                      value={bidForm.target_qty_qtl}
+                      onChange={e => setBidForm({ ...bidForm, target_qty_qtl: Number(e.target.value) })}
+                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-stone-300 mb-1">लक्ष्य भाव (₹/क्विंटल):</label>
+                    <input
+                      type="number"
+                      value={bidForm.target_bid_price_per_qtl}
+                      onChange={e => setBidForm({ ...bidForm, target_bid_price_per_qtl: Number(e.target.value) })}
+                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-stone-300 mb-1">डिलिवरी शहर:</label>
+                    <select
+                      value={bidForm.delivery_city}
+                      onChange={e => setBidForm({ ...bidForm, delivery_city: e.target.value })}
+                      className="w-full bg-[#051c13] text-stone-100 p-2.5 rounded border border-[#1c6644]"
+                    >
+                      {CITY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-slate-950 p-2.5 rounded border border-slate-800">
-                    <input type="checkbox" id="insure" checked={insuranceOpted} onChange={(e)=>setInsuranceOpted(e.target.checked)} className="accent-emerald-500"/>
-                    <label htmlFor="insure" className="text-xs text-slate-300">
-                      Add Comprehensive Marine / Transit Cargo Insurance (0.08% invoice value)
-                    </label>
+                  <div className="flex space-x-3 pt-2">
+                    <button type="button" onClick={() => setShowNewBidModal(false)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
+                    <button type="submit" className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">बोली लगाएं</button>
                   </div>
-
-                  <div className="bg-slate-950 border border-slate-800 p-3 rounded font-mono text-xs space-y-1.5">
-                    <div className="font-bold text-slate-300 font-sans pb-1 border-b border-slate-800">Itemized Commercial Breakdown (100 qtl)</div>
-                    <div className="flex justify-between text-slate-400"><span>Crop Base Value:</span><span>₹{(selectedLot.base_price_per_qtl * 100).toLocaleString()}</span></div>
-                    <div className="flex justify-between text-slate-400"><span>APMC Mandi Fee & RDF:</span><span>₹{selectedLot.commercial_breakdown?.apmc_cess_breakdown?.total_cess || 0}</span></div>
-                    <div className="flex justify-between text-slate-400"><span>B2B Statutory TCS Tax (0.1%):</span><span>₹{selectedLot.commercial_breakdown?.tcs_tax || 0}</span></div>
-                    <div className="flex justify-between text-emerald-400 font-bold border-t border-slate-800 pt-1">
-                      <span>Total Invoice Amount:</span>
-                      <span>₹{selectedLot.total_order_cost?.toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider font-mono">
-                    Authorize Escrow & Lock Advance (20%)
-                  </button>
                 </form>
               </div>
             </div>
           )}
 
-          {/* Weighbridge Double-Slip & Cutter Settlement Modal */}
-          {settlementModal && (
-            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4">
-                <div className="flex justify-between items-start border-b border-slate-800 pb-2">
-                  <div>
-                    <h3 className="font-bold text-base text-white">Weighbridge Reconciliation & Cutter Matrix</h3>
-                    <p className="text-xs text-slate-400">Execute destination net weight verification and penalty deductions.</p>
-                  </div>
-                  <button onClick={() => setSettlementModal(false)} className="text-slate-400 hover:text-white">✕</button>
+          {/* COUNTER OFFER MODAL */}
+          {showCounterModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <h3 className="text-base font-bold text-amber-300">🔄 पलट भाव प्रस्ताव (FPO Counter)</h3>
+                  <button onClick={() => setShowCounterModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
                 </div>
 
-                <form onSubmit={handleSettleCutter} className="space-y-3 text-xs">
+                <form onSubmit={handleCounterBid} className="space-y-3 text-xs">
+                  <div className="bg-[#051c13] p-2.5 rounded border border-[#164d34] font-mono">
+                    <div>बोली आईडी: <b className="text-amber-300">{showCounterModal.bid_id}</b></div>
+                    <div>खरीदार भाव: <b>₹{showCounterModal.target_bid_price_per_qtl} / qtl</b></div>
+                  </div>
+
                   <div>
-                    <label className="text-slate-400 block mb-1">Order Identifier</label>
-                    <input type="text" required placeholder="ORD-..." value={settleForm.order_id} onChange={(e)=>setSettleForm({...settleForm, order_id: e.target.value})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
+                    <label className="block text-stone-300 mb-1">आपका पलट भाव (₹/qtl):</label>
+                    <input
+                      type="number"
+                      value={counterPrice}
+                      onChange={e => setCounterPrice(e.target.value)}
+                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
+                      required
+                    />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-slate-400 block mb-1">Destination Gross Wt (qtl)</label>
-                      <input type="number" step="0.1" required value={settleForm.gross_weight_qtl} onChange={(e)=>setSettleForm({...settleForm, gross_weight_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
-                    </div>
-                    <div>
-                      <label className="text-slate-400 block mb-1">Destination Tare Wt (qtl)</label>
-                      <input type="number" step="0.1" required value={settleForm.tare_weight_qtl} onChange={(e)=>setSettleForm({...settleForm, tare_weight_qtl: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
-                    </div>
+                  <div>
+                    <label className="block text-stone-300 mb-1">टिप्पणी:</label>
+                    <textarea
+                      rows="2"
+                      value={counterNotes}
+                      onChange={e => setCounterNotes(e.target.value)}
+                      className="w-full bg-[#051c13] text-stone-100 p-2 rounded border border-[#1c6644]"
+                    />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-slate-400 block mb-1">Destination Tested Moisture %</label>
-                      <input type="number" step="0.1" required value={settleForm.tested_moisture_pct} onChange={(e)=>setSettleForm({...settleForm, tested_moisture_pct: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
-                    </div>
-                    <div>
-                      <label className="text-slate-400 block mb-1">Tested Broken Grains %</label>
-                      <input type="number" step="0.1" required value={settleForm.tested_broken_pct} onChange={(e)=>setSettleForm({...settleForm, tested_broken_pct: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 p-2 rounded text-white font-mono"/>
-                    </div>
+                  <div className="flex space-x-3 pt-2">
+                    <button type="button" onClick={() => setShowCounterModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
+                    <button type="submit" className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">पलट भाव भेजें</button>
                   </div>
-
-                  <div className="bg-slate-950 p-2.5 rounded border border-slate-800 text-[11px] font-mono text-slate-400">
-                    Formula: Net Wt = Gross - Tare. Shrinkage tolerance: 0.3%. Moisture penalty applies if &gt; 11.5%.
-                  </div>
-
-                  <button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl font-mono uppercase tracking-wider">
-                    Audit Slip & Release Settled Escrow
-                  </button>
                 </form>
               </div>
             </div>
           )}
 
-          {/* Passbook Modal */}
-          {passbookLot && (
-            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 max-w-md w-full space-y-3 text-xs">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <h4 className="font-bold text-white">Farmer Member Payout Ledger</h4>
-                  <button onClick={() => setPassbookLot(null)}>✕</button>
+          {/* ORIGIN WEIGHBRIDGE MODAL */}
+          {showOriginWbModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-blue-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <h3 className="text-base font-bold text-blue-300">🚛 रवानगी धर्म कांटा पर्ची (70% Release)</h3>
+                  <button onClick={() => setShowOriginWbModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
                 </div>
-                {passbookLot.farmers.map(f => (
-                  <div key={f.member_id} className="flex justify-between bg-slate-950 p-2 rounded">
-                    <span>{f.name} ({f.pool_qty_qtl} qtl)</span>
-                    <strong className="text-emerald-400 font-mono">₹{(f.pool_qty_qtl * passbookLot.rate_per_qtl).toLocaleString()}</strong>
+
+                <form onSubmit={handleOriginWeighbridge} className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-stone-300 mb-1">सकल वजन (Gross Wt qtl):</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={originWb.gross_weight_qtl}
+                      onChange={e => setOriginWb({ ...originWb, gross_weight_qtl: e.target.value })}
+                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
+                      required
+                    />
                   </div>
-                ))}
+                  <div>
+                    <label className="block text-stone-300 mb-1">खाली गाड़ी (Tare Wt qtl):</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={originWb.tare_weight_qtl}
+                      onChange={e => setOriginWb({ ...originWb, tare_weight_qtl: e.target.value })}
+                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex space-x-3 pt-2">
+                    <button type="button" onClick={() => setShowOriginWbModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
+                    <button type="submit" className="flex-1 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg">कांटा पर्ची दर्ज करें</button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
+
+          {/* DESTINATION WEIGHBRIDGE MODAL */}
+          {showDestWbModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-lg w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <h3 className="text-base font-bold text-amber-300">⚖️ गंतव्य कांटा व नमी कटी अंतिम निपटारा</h3>
+                  <button onClick={() => setShowDestWbModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
+                </div>
+
+                <form onSubmit={handleDestWeighbridge} className="space-y-3 text-xs">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-stone-300 mb-1">सकल (Gross Wt):</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={destWb.gross_weight_qtl}
+                        onChange={e => setDestWb({ ...destWb, gross_weight_qtl: e.target.value })}
+                        className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-stone-300 mb-1">खाली (Tare Wt):</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={destWb.tare_weight_qtl}
+                        onChange={e => setDestWb({ ...destWb, tare_weight_qtl: e.target.value })}
+                        className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-stone-300 mb-1">नमी % (Tested Moisture %):</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={destWb.tested_moisture_pct}
+                      onChange={e => setDestWb({ ...destWb, tested_moisture_pct: e.target.value })}
+                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2 rounded border border-[#1c6644]"
+                      required
+                    />
+                    <span className="text-[10px] text-stone-400">मानक 11.5% • प्रत्येक 0.5% अतिरिक्त पर ₹25/qtl कटी</span>
+                  </div>
+
+                  <div className="flex space-x-3 pt-2">
+                    <button type="button" onClick={() => setShowDestWbModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
+                    <button type="submit" className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">कटी समायोजित कर अंतिम निपटारा करें</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* E-WAY BILL MODAL */}
+          {showEwayModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-[#092c1d] rounded-2xl border-2 border-emerald-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+                  <h3 className="text-base font-bold text-emerald-300">📜 12-अंकीय GST ई-वे बिल रसीद</h3>
+                  <button onClick={() => setShowEwayModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
+                </div>
+
+                <div className="bg-[#051c13] p-4 rounded-xl border border-[#164d34] text-xs font-mono space-y-2">
+                  <div className="text-center pb-2 border-b border-[#164d34]">
+                    <div className="text-stone-400">e-Way Bill No.</div>
+                    <div className="text-lg font-black text-amber-300 tracking-wider">{showEwayModal.eway_bill_no}</div>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">ऑर्डर reference:</span>
+                    <span className="font-bold text-white">{showEwayModal.order_id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">मात्रा:</span>
+                    <span className="font-bold text-white">{showEwayModal.quantity_qtl} क्विंटल</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">कुल इनवॉइस:</span>
+                    <span className="font-bold text-amber-300">₹{showEwayModal.total_invoice_amount?.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">सत्यापन:</span>
+                    <span className="font-bold text-emerald-400 font-sans">✓ CGST Rule 138 सत्यापित</span>
+                  </div>
+                </div>
+
+                <button onClick={() => setShowEwayModal(null)} className="w-full py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">बंद करें</button>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <footer className="bg-[#03170f] border-t border-[#12422c] py-4 text-center text-xs text-stone-400 font-medium">
+            किसान व्यापार मंडी डेस्क • राष्ट्रीय कृषि थोक व्यापार एवं सुरक्षित अमानत प्रणाली • All Mandi Statutory Rules & GST Compliant
+          </footer>
         </div>
       );
     }
 
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    ReactDOM.render(<App />, document.getElementById('root'));
   </script>
 </body>
 </html>
