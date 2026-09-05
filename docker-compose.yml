@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: agri_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agri_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agri_secret_password_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-agri_exchange}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agri_admin} -d ${POSTGRES_DB:-agri_exchange}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agri_network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agri_fastapi_web
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://agri_admin:agri_secret_password_2026@db:5432/agri_exchange}
+      - SECRET_KEY=${SECRET_KEY:-agri-exchange-jwt-production-secret-2026}
+      - ALGORITHM=${ALGORITHM:-HS256}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - agri_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: agri_nginx_proxy
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./static:/usr/share/nginx/html/static:ro
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - agri_network
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  agri_network:
+    driver: bridge

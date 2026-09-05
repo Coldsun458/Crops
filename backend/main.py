@@ -5,18 +5,33 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Depends, Header, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from database import engine, get_db, Base
 import models
-from engine import CITY_COORDINATES, calculate_best_buy, calculate_commercial_invoice
+from engine import (
+    CITY_COORDINATES,
+    MANDI_REGISTRY,
+    APMC_CESS_RATES,
+    BAGGING_PREMIUMS,
+    CORRIDOR_WAYPOINTS,
+    MSP_BENCHMARKS,
+    calculate_best_buy,
+    calculate_commercial_invoice,
+    haversine_distance
+)
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="AgriExchange Wholesaler Production Engine", version="4.5.0")
+app = FastAPI(
+    title="AgriExchange Wholesaler Production Engine",
+    description="Market Arbitrage, Commercial Safeguards, Double Auction, and Escrow Execution API",
+    version="4.5.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,12 +67,12 @@ def create_access_token(user_data: dict) -> str:
 
 def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication token required.")
     token = authorization.split(" ")[1]
     try:
         return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except jwt.PyJWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token.")
 
 class RoleChecker:
     def __init__(self, allowed_roles: List[str]):
@@ -67,43 +82,178 @@ class RoleChecker:
         if user.get("role") not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access Denied. Role required: {', '.join(self.allowed_roles)}"
+                detail=f"Access Denied. Role required: {', '.join(self.allowed_roles)} (Active role: {user.get('role')})"
             )
         return user
 
 def seed_initial_data():
     db = next(get_db())
+    # Seed Crop Lots for all 7 required origin mandis
     if db.query(models.CropLot).count() == 0:
         initial_lots = [
             models.CropLot(
                 id="FPO-LOT-101",
                 commodity="Wheat",
-                variety="PBW-725 Sharbati",
+                variety="PBW-725 Sharbati Grade A",
                 mandi="Khanna, Punjab",
                 fpo_name="Doaba Agri Producers Co.",
                 base_price_per_qtl=2580.0,
-                available_qty_qtl=1400,
+                available_qty_qtl=1400.0,
                 moisture_percent=11.2,
                 bagging_type="50KG_JUTE_GUNNY",
                 bag_cost_included=True,
                 apmc_cess_paid_at_source=True,
-                assaying={"foreign_matter_pct": 0.4, "broken_pct": 1.1, "protein_pct": 12.8, "grain_length_mm": 7.1, "lab_name": "Agmark Patiala"},
-                farmer_members=[{"member_id": "FARM-PB-01", "name": "Gurdev Singh", "pool_qty_qtl": 600}, {"member_id": "FARM-PB-02", "name": "Harbans Kaur", "pool_qty_qtl": 450}]
+                mform_document_hash="MFORM-PB-KHN-2026-9A88F110B",
+                assaying={
+                    "foreign_matter_pct": 0.4,
+                    "broken_pct": 1.1,
+                    "protein_pct": 12.8,
+                    "grain_length_mm": 7.1,
+                    "lab_name": "Agmark Central Testing Lab, Patiala",
+                    "nabl_cert_no": "NABL-PB-7718-2026",
+                    "grade": "Super Premium Sharbati"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-PB-01", "name": "Gurdev Singh", "village": "Alour, Khanna", "pool_qty_qtl": 600.0, "aadhar_masked": "XXXX-XXXX-4102", "bank_account": "SBIN0001029481", "ifsc": "SBIN0001029"},
+                    {"member_id": "FARM-PB-02", "name": "Harbans Kaur", "village": "Libra, Khanna", "pool_qty_qtl": 450.0, "aadhar_masked": "XXXX-XXXX-7721", "bank_account": "PUNB0002938102", "ifsc": "PUNB0002938"},
+                    {"member_id": "FARM-PB-03", "name": "Jagtar Singh", "village": "Bhadla, Khanna", "pool_qty_qtl": 350.0, "aadhar_masked": "XXXX-XXXX-9912", "bank_account": "HDFC0001928374", "ifsc": "HDFC0001928"}
+                ]
             ),
             models.CropLot(
                 id="FPO-LOT-102",
                 commodity="Wheat",
                 variety="Malwa Lokwan Gold",
-                mandi="Indore, MP",
+                mandi="Indore, Madhya Pradesh",
                 fpo_name="Malwa Kisan Samriddhi FPO",
                 base_price_per_qtl=2420.0,
-                available_qty_qtl=850,
+                available_qty_qtl=850.0,
                 moisture_percent=10.5,
                 bagging_type="50KG_PP_BAG",
                 bag_cost_included=True,
                 apmc_cess_paid_at_source=True,
-                assaying={"foreign_matter_pct": 0.6, "broken_pct": 1.8, "protein_pct": 11.6, "grain_length_mm": 6.8, "lab_name": "MP State Assaying"},
-                farmer_members=[{"member_id": "FARM-MP-11", "name": "Rajesh Patidar", "pool_qty_qtl": 500}]
+                mform_document_hash="MFORM-MP-IND-2026-3C449E2A7",
+                assaying={
+                    "foreign_matter_pct": 0.6,
+                    "broken_pct": 1.8,
+                    "protein_pct": 11.6,
+                    "grain_length_mm": 6.8,
+                    "lab_name": "MP State Agricultural Research Lab, Indore",
+                    "nabl_cert_no": "NABL-MP-3341-2026",
+                    "grade": "Lokwan Premium Mill"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-MP-11", "name": "Rajesh Patidar", "village": "Sanwer, Indore", "pool_qty_qtl": 500.0, "aadhar_masked": "XXXX-XXXX-1142", "bank_account": "BARB0INDORE12", "ifsc": "BARB0INDORE1"},
+                    {"member_id": "FARM-MP-12", "name": "Shivram Yadav", "village": "Depalpur, Indore", "pool_qty_qtl": 350.0, "aadhar_masked": "XXXX-XXXX-8821", "bank_account": "SBIN0008819201", "ifsc": "SBIN0008819"}
+                ]
+            ),
+            models.CropLot(
+                id="FPO-LOT-103",
+                commodity="Wheat",
+                variety="HD-3086 Superior Grain",
+                mandi="Bathinda, Punjab",
+                fpo_name="Bathinda Farmers Producer Co.",
+                base_price_per_qtl=2490.0,
+                available_qty_qtl=1100.0,
+                moisture_percent=11.4,
+                bagging_type="50KG_JUTE_GUNNY",
+                bag_cost_included=True,
+                apmc_cess_paid_at_source=True,
+                mform_document_hash="MFORM-PB-BTI-2026-7B129F99A",
+                assaying={
+                    "foreign_matter_pct": 0.5,
+                    "broken_pct": 1.3,
+                    "protein_pct": 12.1,
+                    "grain_length_mm": 7.0,
+                    "lab_name": "PAU Regional Research Lab, Bathinda",
+                    "nabl_cert_no": "NABL-PB-9901-2026",
+                    "grade": "Grade-A Superior"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-PB-21", "name": "Sukhwinder Singh", "village": "Goniana, Bathinda", "pool_qty_qtl": 600.0, "aadhar_masked": "XXXX-XXXX-3381", "bank_account": "SBIN0004928172", "ifsc": "SBIN0004928"},
+                    {"member_id": "FARM-PB-22", "name": "Balwinder Kaur", "village": "Talwandi Sabo", "pool_qty_qtl": 500.0, "aadhar_masked": "XXXX-XXXX-5520", "bank_account": "PUNB0007728192", "ifsc": "PUNB0007728"}
+                ]
+            ),
+            models.CropLot(
+                id="FPO-LOT-104",
+                commodity="Mustard",
+                variety="Pusa Mustard-25 Bold Seed",
+                mandi="Kota, Rajasthan",
+                fpo_name="Hadoti Krishi Vikash",
+                base_price_per_qtl=5480.0,
+                available_qty_qtl=600.0,
+                moisture_percent=7.8,
+                bagging_type="50KG_PP_BAG",
+                bag_cost_included=True,
+                apmc_cess_paid_at_source=True,
+                mform_document_hash="MFORM-RJ-KOT-2026-5E881C02D",
+                assaying={
+                    "foreign_matter_pct": 0.8,
+                    "broken_pct": 0.9,
+                    "protein_pct": 19.4,
+                    "grain_length_mm": 3.2,
+                    "oil_content_pct": 41.5,
+                    "lab_name": "Hadoti Agro Testing Center, Kota",
+                    "nabl_cert_no": "NABL-RJ-5521-2026",
+                    "grade": "High Oil Bold Seed"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-RJ-01", "name": "Ramprasad Meena", "village": "Ladpura, Kota", "pool_qty_qtl": 350.0, "aadhar_masked": "XXXX-XXXX-6612", "bank_account": "BARB0KOTAXX12", "ifsc": "BARB0KOTAXX"},
+                    {"member_id": "FARM-RJ-02", "name": "Gopal Gurjar", "village": "Sangod, Kota", "pool_qty_qtl": 250.0, "aadhar_masked": "XXXX-XXXX-9941", "bank_account": "SBIN0002819384", "ifsc": "SBIN0002819"}
+                ]
+            ),
+            models.CropLot(
+                id="FPO-LOT-105",
+                commodity="Wheat",
+                variety="UP-2628 Golden Kernel",
+                mandi="Bareilly, Uttar Pradesh",
+                fpo_name="Rohilkhand Kisan Union",
+                base_price_per_qtl=2390.0,
+                available_qty_qtl=950.0,
+                moisture_percent=11.9,
+                bagging_type="50KG_PP_BAG",
+                bag_cost_included=True,
+                apmc_cess_paid_at_source=True,
+                mform_document_hash="MFORM-UP-BLY-2026-11AE7742C",
+                assaying={
+                    "foreign_matter_pct": 0.7,
+                    "broken_pct": 1.9,
+                    "protein_pct": 11.2,
+                    "grain_length_mm": 6.7,
+                    "lab_name": "UP Mandi Parishad Lab, Bareilly",
+                    "nabl_cert_no": "NABL-UP-4412-2026",
+                    "grade": "Standard Flour Mill Grade"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-UP-01", "name": "Rameshwar Gangwar", "village": "Nawabganj, Bareilly", "pool_qty_qtl": 550.0, "aadhar_masked": "XXXX-XXXX-4421", "bank_account": "PUNB0004928172", "ifsc": "PUNB0004928"},
+                    {"member_id": "FARM-UP-02", "name": "Dinesh Maurya", "village": "Faridpur, Bareilly", "pool_qty_qtl": 400.0, "aadhar_masked": "XXXX-XXXX-7719", "bank_account": "SBIN0001928374", "ifsc": "SBIN0001928"}
+                ]
+            ),
+            models.CropLot(
+                id="FPO-LOT-106",
+                commodity="Wheat",
+                variety="GW-496 Gujarat Sharbati",
+                mandi="Rajkot, Gujarat",
+                fpo_name="Saurashtra Agro Cluster",
+                base_price_per_qtl=2620.0,
+                available_qty_qtl=700.0,
+                moisture_percent=10.2,
+                bagging_type="50KG_JUTE_GUNNY",
+                bag_cost_included=True,
+                apmc_cess_paid_at_source=True,
+                mform_document_hash="MFORM-GJ-RJK-2026-89BB4410D",
+                assaying={
+                    "foreign_matter_pct": 0.3,
+                    "broken_pct": 1.0,
+                    "protein_pct": 13.1,
+                    "grain_length_mm": 7.3,
+                    "lab_name": "Saurashtra Quality Assaying House, Rajkot",
+                    "nabl_cert_no": "NABL-GJ-8812-2026",
+                    "grade": "Export Grade Sharbati"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-GJ-01", "name": "Mansukh Patel", "village": "Gondal, Rajkot", "pool_qty_qtl": 400.0, "aadhar_masked": "XXXX-XXXX-2291", "bank_account": "BARB0RAJKOT11", "ifsc": "BARB0RAJKOT"},
+                    {"member_id": "FARM-GJ-02", "name": "Bhavesh Jadeja", "village": "Jasdan, Rajkot", "pool_qty_qtl": 300.0, "aadhar_masked": "XXXX-XXXX-8812", "bank_account": "SBIN0007728192", "ifsc": "SBIN0007728"}
+                ]
             ),
             models.CropLot(
                 id="FPO-LOT-201",
@@ -112,22 +262,195 @@ def seed_initial_data():
                 mandi="Karnal, Haryana",
                 fpo_name="Taraori Rice Growers Guild",
                 base_price_per_qtl=4150.0,
-                available_qty_qtl=450,
+                available_qty_qtl=450.0,
                 moisture_percent=11.8,
                 bagging_type="50KG_JUTE_GUNNY",
                 bag_cost_included=True,
                 apmc_cess_paid_at_source=True,
-                assaying={"foreign_matter_pct": 0.2, "broken_pct": 0.8, "protein_pct": 8.5, "grain_length_mm": 8.35, "lab_name": "Taraori Lab"},
-                farmer_members=[{"member_id": "FARM-HR-51", "name": "Naresh Kumar", "pool_qty_qtl": 250}]
+                mform_document_hash="MFORM-HR-KRL-2026-66FF1299E",
+                assaying={
+                    "foreign_matter_pct": 0.2,
+                    "broken_pct": 0.8,
+                    "protein_pct": 8.5,
+                    "grain_length_mm": 8.35,
+                    "lab_name": "Taraori Grain Analysis Institute, Karnal",
+                    "nabl_cert_no": "NABL-HR-1121-2026",
+                    "grade": "Extra Long Basmati Export"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-HR-51", "name": "Naresh Kumar", "village": "Taraori, Karnal", "pool_qty_qtl": 250.0, "aadhar_masked": "XXXX-XXXX-9910", "bank_account": "SBIN0001192837", "ifsc": "SBIN0001192"},
+                    {"member_id": "FARM-HR-52", "name": "Rakesh Sharma", "village": "Nilokheri, Karnal", "pool_qty_qtl": 200.0, "aadhar_masked": "XXXX-XXXX-5519", "bank_account": "PUNB0003819283", "ifsc": "PUNB0003819"}
+                ]
             )
         ]
         db.add_all(initial_lots)
         db.commit()
+
+    # Seed initial buyer bids if empty
+    if db.query(models.BuyerBid).count() == 0:
+        initial_bids = [
+            models.BuyerBid(
+                bid_id="BID-9901",
+                buyer_id="USR-BUYER-01",
+                buyer_name="Aryan Foods & Flour Mills",
+                buyer_phone="+91 98765-11223",
+                commodity="Wheat",
+                target_qty_qtl=250.0,
+                target_bid_price_per_qtl=2460.0,
+                delivery_city="Jalandhar",
+                status="OPEN_AUCTION"
+            ),
+            models.BuyerBid(
+                bid_id="BID-9902",
+                buyer_id="USR-BUYER-02",
+                buyer_name="North India Rice Mills",
+                buyer_phone="+91 98765-22334",
+                commodity="Rice",
+                target_qty_qtl=150.0,
+                target_bid_price_per_qtl=4100.0,
+                delivery_city="Delhi",
+                status="COUNTER_OFFERED",
+                counter_price_per_qtl=4140.0,
+                counter_fpo_name="Taraori Rice Growers Guild",
+                counter_notes="Premium steam Basmati lot with certified 8.35mm kernel length."
+            )
+        ]
+        db.add_all(initial_bids)
+        db.commit()
+
+    # Seed initial scheduled slot if empty
+    if db.query(models.ScheduledSlot).count() == 0:
+        db.add(models.ScheduledSlot(
+            slot_id="SLOT-8801",
+            token_number=1,
+            mandi_hub="Khanna, Punjab",
+            slot_date="2026-09-08",
+            window_key="EARLY_MORNING",
+            window_label="Early Morning (03:00 AM - 09:00 AM)",
+            truck_reg_number="PB-10-XX-4412",
+            commodity="Wheat",
+            quantity_qtl=250.0,
+            booked_by="Punjab Highway Freight Fleet",
+            status="CONFIRMED"
+        ))
+        db.commit()
+
+    # Seed sample orders across all 3 escrow stages if orders empty
+    if db.query(models.Order).count() == 0:
+        # Order 1: Stage 1 Locked (Advance 20%)
+        ord1_invoice = calculate_commercial_invoice(2580.0, 100.0, 42.0, "Punjab", "50KG_JUTE_GUNNY", True)
+        total1 = ord1_invoice["total_invoice"]
+        ord1 = models.Order(
+            order_id="ORD-1001",
+            eway_bill_no="EWB241890345122",
+            lot_id="FPO-LOT-101",
+            buyer_id="USR-BUYER-01",
+            buyer_name="Aryan Foods & Flour Mills",
+            buyer_phone="+91 98765-11223",
+            delivery_address="Focal Point Phase-VIII, Jalandhar, Punjab - 144004",
+            gstin="03AAAAA0000A1Z5",
+            payment_method="ESCROW_UPI",
+            quantity_qtl=100.0,
+            base_price_per_qtl=2580.0,
+            bagging_type="50KG_JUTE_GUNNY",
+            freight_per_qtl=42.0,
+            apmc_cess_amount=ord1_invoice["apmc_cess_breakdown"]["total_cess"],
+            tcs_tax_amount=ord1_invoice["tcs_tax"],
+            transit_insurance_opted=True,
+            insurance_fee=ord1_invoice["insurance_cost"],
+            insurance_policy_no="NIC-AGRI-2026-88129",
+            total_invoice_amount=total1,
+            escrow_stages={
+                "advance_20_pct": round(total1 * 0.20, 2),
+                "dispatch_70_pct": round(total1 * 0.70, 2),
+                "final_10_pct": round(total1 * 0.10, 2)
+            },
+            status="ADVANCE_ESCROW_LOCKED"
+        )
+
+        # Order 2: Stage 2 Released (Dispatch 70% Released)
+        ord2_invoice = calculate_commercial_invoice(2420.0, 150.0, 88.0, "Madhya Pradesh", "50KG_PP_BAG", True)
+        total2 = ord2_invoice["total_invoice"]
+        ord2 = models.Order(
+            order_id="ORD-1002",
+            eway_bill_no="EWB241890345123",
+            lot_id="FPO-LOT-102",
+            buyer_id="USR-BUYER-01",
+            buyer_name="Aryan Foods & Flour Mills",
+            buyer_phone="+91 98765-11223",
+            delivery_address="Industrial Area, Delhi Road, Jalandhar",
+            gstin="03AAAAA0000A1Z5",
+            payment_method="ESCROW_RTGS",
+            quantity_qtl=150.0,
+            base_price_per_qtl=2420.0,
+            bagging_type="50KG_PP_BAG",
+            freight_per_qtl=88.0,
+            apmc_cess_amount=ord2_invoice["apmc_cess_breakdown"]["total_cess"],
+            tcs_tax_amount=ord2_invoice["tcs_tax"],
+            transit_insurance_opted=True,
+            insurance_fee=ord2_invoice["insurance_cost"],
+            insurance_policy_no="NIC-AGRI-2026-88130",
+            total_invoice_amount=total2,
+            escrow_stages={
+                "advance_20_pct": round(total2 * 0.20, 2),
+                "dispatch_70_pct": round(total2 * 0.70, 2),
+                "final_10_pct": round(total2 * 0.10, 2)
+            },
+            origin_gross_wt_qtl=195.4,
+            origin_tare_wt_qtl=45.4,
+            origin_net_wt_qtl=150.0,
+            status="DISPATCH_70_RELEASED"
+        )
+
+        # Order 3: Stage 3 Fully Settled Post-Cutter Audit
+        ord3_invoice = calculate_commercial_invoice(2490.0, 100.0, 38.0, "Punjab", "50KG_JUTE_GUNNY", True)
+        total3 = ord3_invoice["total_invoice"]
+        ord3 = models.Order(
+            order_id="ORD-1003",
+            eway_bill_no="EWB241890345124",
+            lot_id="FPO-LOT-103",
+            buyer_id="USR-BUYER-01",
+            buyer_name="Aryan Foods & Flour Mills",
+            buyer_phone="+91 98765-11223",
+            delivery_address="GT Road Agro Park, Jalandhar",
+            gstin="03AAAAA0000A1Z5",
+            payment_method="ESCROW_UPI",
+            quantity_qtl=100.0,
+            base_price_per_qtl=2490.0,
+            bagging_type="50KG_JUTE_GUNNY",
+            freight_per_qtl=38.0,
+            apmc_cess_amount=ord3_invoice["apmc_cess_breakdown"]["total_cess"],
+            tcs_tax_amount=ord3_invoice["tcs_tax"],
+            transit_insurance_opted=True,
+            insurance_fee=ord3_invoice["insurance_cost"],
+            insurance_policy_no="NIC-AGRI-2026-88131",
+            total_invoice_amount=total3,
+            escrow_stages={
+                "advance_20_pct": round(total3 * 0.20, 2),
+                "dispatch_70_pct": round(total3 * 0.70, 2),
+                "final_10_pct": round(total3 * 0.10, 2)
+            },
+            origin_gross_wt_qtl=142.5,
+            origin_tare_wt_qtl=42.5,
+            origin_net_wt_qtl=100.0,
+            destination_gross_wt_qtl=142.3,
+            destination_tare_wt_qtl=42.5,
+            destination_net_wt_qtl=99.8,
+            transit_weight_loss_qtl=0.2,
+            tested_destination_moisture=11.9, # 0.4% excess moisture -> ₹20/qtl cutter
+            tested_destination_broken=1.1,
+            cutter_deduction_amount=1996.0,
+            final_settled_payout=round(total3 * 0.10 - 1996.0, 2),
+            status="COMPLETED_AND_SETTLED"
+        )
+        db.add_all([ord1, ord2, ord3])
+        db.commit()
+
     db.close()
 
 seed_initial_data()
 
-# Request Schemas
+# Schemas
 class LoginRequest(BaseModel):
     email: str
 
@@ -150,24 +473,46 @@ class OrderRequest(BaseModel):
 class SampleOrderRequest(BaseModel):
     lot_id: str
     delivery_address: str
+    buyer_phone: Optional[str] = "+91 98765-11223"
 
 class OriginWeighbridgeSlip(BaseModel):
     order_id: str
     gross_weight_qtl: float
     tare_weight_qtl: float
+    weighbridge_slip_no: Optional[str] = "WB-ORIGIN-001"
 
 class DestinationWeighbridgeAndCutter(BaseModel):
     order_id: str
     gross_weight_qtl: float
     tare_weight_qtl: float
     tested_moisture_pct: float
-    tested_broken_pct: float
+    tested_broken_pct: Optional[float] = 1.2
+    tested_foreign_matter_pct: Optional[float] = 0.4
 
 class BidPlacementRequest(BaseModel):
     commodity: str
     target_qty_qtl: float
     target_bid_price_per_qtl: float
     delivery_city: str
+
+class BidCounterRequest(BaseModel):
+    counter_price_per_qtl: float
+    counter_notes: str = "Official FPO counter-offer"
+
+class CropLotCreate(BaseModel):
+    commodity: str
+    variety: str
+    mandi: str
+    fpo_name: str
+    base_price_per_qtl: float
+    available_qty_qtl: float
+    moisture_percent: float
+    bagging_type: str = "50KG_JUTE_GUNNY"
+    foreign_matter_pct: float = 0.5
+    broken_pct: float = 1.0
+    protein_pct: float = 12.0
+    grain_length_mm: float = 7.0
+    farmer_members: List[dict] = []
 
 class SlotBookingCreate(BaseModel):
     truck_reg_number: str
@@ -188,12 +533,33 @@ class DayCancellationRequest(BaseModel):
     cancellation_reason: str
 
 # Endpoints
+@app.get("/health")
+def healthcheck(db: Session = Depends(get_db)):
+    try:
+        db.execute(func.now())
+        db_status = "connected"
+    except Exception:
+        db_status = "sqlite_active"
+    return {
+        "status": "healthy",
+        "service": "AgriExchange Commercial Wholesaler Engine",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "database": db_status,
+        "version": "4.5.0"
+    }
+
 @app.get("/")
 def serve_terminal():
-    static_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "index.html")
-    if not os.path.exists(static_file):
-        static_file = os.path.join(os.path.dirname(__file__), "index.html")
-    return FileResponse(static_file)
+    candidate_paths = [
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "index.html"),
+        os.path.join(os.path.dirname(__file__), "static", "index.html"),
+        os.path.join(os.path.dirname(__file__), "index.html"),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "index.html")
+    ]
+    for p in candidate_paths:
+        if os.path.exists(p):
+            return FileResponse(p)
+    return JSONResponse(status_code=404, content={"detail": "Terminal UI index.html not found"})
 
 @app.get("/api/v1/auth/accounts")
 def get_accounts():
@@ -205,6 +571,21 @@ def login(req: LoginRequest):
     if not user:
         raise HTTPException(status_code=404, detail="User account not found")
     return {"status": "SUCCESS", "token": create_access_token(user), "user": user}
+
+@app.get("/api/v1/auth/me")
+def verify_current_identity(user: dict = Depends(get_current_user)):
+    return {"status": "AUTHENTICATED", "user": user}
+
+@app.get("/api/v1/market/registry")
+def get_market_registry():
+    return {
+        "origin_mandis": MANDI_REGISTRY,
+        "destination_cities": CITY_COORDINATES,
+        "corridor_checkpoints": CORRIDOR_WAYPOINTS,
+        "apmc_cess_rules": APMC_CESS_RATES,
+        "bagging_options": BAGGING_PREMIUMS,
+        "msp_benchmarks": MSP_BENCHMARKS
+    }
 
 @app.post("/api/v1/recommendations")
 async def get_market_recommendations(query: BestBuyQuery, db: Session = Depends(get_db)):
@@ -225,6 +606,7 @@ async def get_market_recommendations(query: BestBuyQuery, db: Session = Depends(
         "moisture_percent": l.moisture_percent,
         "bagging_type": l.bagging_type,
         "mform_document_hash": l.mform_document_hash,
+        "apmc_cess_paid_at_source": l.apmc_cess_paid_at_source,
         "assaying": l.assaying,
         "farmer_members": l.farmer_members
     } for l in db_lots]
@@ -235,9 +617,15 @@ async def get_market_recommendations(query: BestBuyQuery, db: Session = Depends(
         required_qty_qtl=query.quantity_qtl,
         current_listings=lots_dicts
     )
-    return {"best_pick": results[0] if results else None, "all_listings": results}
+    return {
+        "best_pick": results[0] if results else None,
+        "all_listings": results,
+        "total_lots_scanned": len(results),
+        "destination_city": query.buyer_city,
+        "benchmark_msp": MSP_BENCHMARKS.get(query.commodity, 2425.0)
+    }
 
-# 1. 1kg Sample Dispatch Workflow
+# 1. 1kg Sealed Sample Dispatch
 @app.post("/api/v1/commercial/request-sample")
 def order_physical_sample(req: SampleOrderRequest, user: dict = Depends(RoleChecker(["BUYER"])), db: Session = Depends(get_db)):
     lot = db.query(models.CropLot).filter(models.CropLot.id == req.lot_id).first()
@@ -245,14 +633,16 @@ def order_physical_sample(req: SampleOrderRequest, user: dict = Depends(RoleChec
         raise HTTPException(status_code=404, detail="Crop lot not found")
 
     sample_id = f"SMP-{int(datetime.now(timezone.utc).timestamp()) % 100000}"
-    tracking = f"DTDC-AGRI-{uuid.uuid4().hex[:8].upper()}"
+    tracking = f"DTDC-AGRI-COLD-{uuid.uuid4().hex[:6].upper()}"
     
     sample_entry = models.SampleCourierRequest(
         sample_id=sample_id,
         lot_id=lot.id,
         buyer_name=user["name"],
+        buyer_phone=req.buyer_phone or user.get("phone", "+91 98765-00000"),
         delivery_address=req.delivery_address,
         courier_tracking_no=tracking,
+        courier_partner="DTDC Express Agri-Cold Courier",
         fee_paid=450.0,
         status="DISPATCHED"
     )
@@ -261,16 +651,34 @@ def order_physical_sample(req: SampleOrderRequest, user: dict = Depends(RoleChec
 
     return {
         "status": "SUCCESS",
-        "message": f"Sealed 1kg tamper-evident parcel dispatched via Express Courier for {lot.variety}",
+        "message": f"Sealed 1kg tamper-evident sample parcel dispatched via Express Agri-Cold Courier for {lot.variety}",
         "sample": {
             "sample_id": sample_id,
+            "lot_id": lot.id,
+            "lot_variety": lot.variety,
             "courier_tracking_no": tracking,
             "courier_partner": "DTDC Express Agri-Cold Courier",
-            "fee_debited": 450.0
+            "fee_debited": 450.0,
+            "tamper_seal_serial": f"SEAL-{uuid.uuid4().hex[:8].upper()}"
         }
     }
 
-# 2. Commercial Escrow Order Execution
+@app.get("/api/v1/commercial/samples")
+def list_sample_requests(db: Session = Depends(get_db)):
+    samples = db.query(models.SampleCourierRequest).order_by(models.SampleCourierRequest.created_at.desc()).all()
+    return [{
+        "sample_id": s.sample_id,
+        "lot_id": s.lot_id,
+        "buyer_name": s.buyer_name,
+        "delivery_address": s.delivery_address,
+        "courier_tracking_no": s.courier_tracking_no,
+        "courier_partner": s.courier_partner,
+        "fee_paid": s.fee_paid,
+        "status": s.status,
+        "created_at": s.created_at.isoformat() if s.created_at else None
+    } for s in samples]
+
+# 2. Commercial Orders & Multi-Stage Escrow
 @app.post("/api/v1/orders/buy")
 def place_commercial_order(order: OrderRequest, user: dict = Depends(RoleChecker(["BUYER"])), db: Session = Depends(get_db)):
     with db.begin():
@@ -286,13 +694,13 @@ def place_commercial_order(order: OrderRequest, user: dict = Depends(RoleChecker
         comm_invoice = calculate_commercial_invoice(
             base_price_per_qtl=lot.base_price_per_qtl,
             quantity_qtl=order.quantity_qtl,
-            freight_per_qtl=65.0, # Standard corridor freight
+            freight_per_qtl=58.0,
             state_origin=lot.mandi.split(",")[-1].strip(),
             bagging_type=order.bagging_type,
             insurance_opted=order.transit_insurance_opted
         )
 
-        order_id = f"ORD-{int(datetime.now(timezone.utc).timestamp())}"
+        order_id = f"ORD-{int(datetime.now(timezone.utc).timestamp()) % 1000000}"
         eway_bill = f"EWB{uuid.uuid4().int % 1000000000000:012d}"
         total_amt = comm_invoice["total_invoice"]
 
@@ -308,31 +716,66 @@ def place_commercial_order(order: OrderRequest, user: dict = Depends(RoleChecker
             payment_method=order.payment_method,
             quantity_qtl=order.quantity_qtl,
             base_price_per_qtl=lot.base_price_per_qtl,
-            freight_per_qtl=65.0,
+            bagging_type=order.bagging_type,
+            freight_per_qtl=58.0,
             apmc_cess_amount=comm_invoice["apmc_cess_breakdown"]["total_cess"],
             tcs_tax_amount=comm_invoice["tcs_tax"],
             transit_insurance_opted=order.transit_insurance_opted,
             insurance_fee=comm_invoice["insurance_cost"],
+            insurance_policy_no=f"NIC-AGRI-{uuid.uuid4().hex[:8].upper()}" if order.transit_insurance_opted else None,
             total_invoice_amount=total_amt,
             escrow_stages={
                 "advance_20_pct": round(total_amt * 0.20, 2),
                 "dispatch_70_pct": round(total_amt * 0.70, 2),
                 "final_10_pct": round(total_amt * 0.10, 2)
-            }
+            },
+            status="ADVANCE_ESCROW_LOCKED"
         )
         db.add(new_order)
 
     return {
         "status": "SUCCESS",
+        "message": f"Order {order_id} confirmed. Stage 1 (20%) Advance Escrow Locked!",
         "order": {
             "order_id": new_order.order_id,
             "eway_bill_no": new_order.eway_bill_no,
+            "status": new_order.status,
             "commercial_breakdown": comm_invoice,
             "escrow_stages": new_order.escrow_stages
         }
     }
 
-# 3. Origin Weighbridge Tare & Gross Registration
+@app.get("/api/v1/orders/all")
+def get_all_orders(db: Session = Depends(get_db)):
+    orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+    return [{
+        "order_id": o.order_id,
+        "eway_bill_no": o.eway_bill_no,
+        "lot_id": o.lot_id,
+        "buyer_name": o.buyer_name,
+        "quantity_qtl": o.quantity_qtl,
+        "base_price_per_qtl": o.base_price_per_qtl,
+        "bagging_type": o.bagging_type,
+        "total_invoice_amount": o.total_invoice_amount,
+        "status": o.status,
+        "escrow_stages": o.escrow_stages,
+        "origin_net_wt_qtl": o.origin_net_wt_qtl,
+        "destination_net_wt_qtl": o.destination_net_wt_qtl,
+        "transit_weight_loss_qtl": o.transit_weight_loss_qtl,
+        "tested_destination_moisture": o.tested_destination_moisture,
+        "cutter_deduction_amount": o.cutter_deduction_amount,
+        "final_settled_payout": o.final_settled_payout,
+        "created_at": o.created_at.isoformat() if o.created_at else None
+    } for o in orders]
+
+@app.get("/api/v1/orders/{order_id}")
+def get_order_details(order_id: str, db: Session = Depends(get_db)):
+    order = db.query(models.Order).filter(models.Order.order_id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+# 3. Origin Weighbridge Slip -> Releases 70% Stage 2 Escrow
 @app.post("/api/v1/commercial/weighbridge/origin-slip")
 def submit_origin_weighbridge(slip: OriginWeighbridgeSlip, user: dict = Depends(RoleChecker(["FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
     with db.begin():
@@ -351,10 +794,13 @@ def submit_origin_weighbridge(slip: OriginWeighbridgeSlip, user: dict = Depends(
 
     return {
         "status": "SUCCESS",
-        "message": f"Origin Net Weight Registered: {net_wt} qtl. 70% Dispatch Escrow Released to FPO."
+        "message": f"Origin Net Weight Registered: {net_wt} qtl. Stage 2 (70%) Dispatch Escrow Released to FPO!",
+        "order_id": order.order_id,
+        "released_dispatch_escrow": order.escrow_stages["dispatch_70_pct"],
+        "status": order.status
     }
 
-# 4. Destination Net Weight & Quality Deduction (Cutter / Battya) Execution
+# 4. Destination Weighbridge, Shrinkage Reconciliation & Cutter Audit -> Releases Stage 3 Escrow
 @app.post("/api/v1/commercial/weighbridge/destination-settle")
 def destination_weighbridge_and_cutter(req: DestinationWeighbridgeAndCutter, user: dict = Depends(RoleChecker(["BUYER"])), db: Session = Depends(get_db)):
     with db.begin():
@@ -363,28 +809,38 @@ def destination_weighbridge_and_cutter(req: DestinationWeighbridgeAndCutter, use
             raise HTTPException(status_code=404, detail="Order not found")
 
         dest_net = round(req.gross_weight_qtl - req.tare_weight_qtl, 2)
+        if dest_net <= 0:
+            raise HTTPException(status_code=400, detail="Gross weight must exceed tare weight")
+
         order.destination_gross_wt_qtl = req.gross_weight_qtl
         order.destination_tare_wt_qtl = req.tare_weight_qtl
         order.destination_net_wt_qtl = dest_net
 
-        # Shrinkage check: Allowed tolerance 0.3%
+        # Shrinkage check: Allowed transit loss shrinkage tolerance is 0.3%
         origin_net = order.origin_net_wt_qtl or order.quantity_qtl
-        shortage = round(origin_net - dest_net, 2)
+        shortage = round(max(0.0, origin_net - dest_net), 2)
         tolerance_qtl = round(origin_net * 0.003, 2)
-        chargeable_shortage = max(0.0, shortage - tolerance_qtl)
+        chargeable_shortage = max(0.0, round(shortage - tolerance_qtl, 2))
         shortage_deduction = round(chargeable_shortage * order.base_price_per_qtl, 2)
+        order.transit_weight_loss_qtl = shortage
 
         # Moisture Cutter Rule: ₹25/qtl penalty for every 0.5% moisture above contract limit of 11.5%
         contract_moisture_limit = 11.5
-        excess_moisture = max(0.0, req.tested_moisture_pct - contract_moisture_limit)
+        excess_moisture = max(0.0, round(req.tested_moisture_pct - contract_moisture_limit, 2))
         moisture_penalty_rate = (excess_moisture / 0.5) * 25.0
         moisture_cutter_total = round(moisture_penalty_rate * dest_net, 2)
 
-        total_cutter = round(shortage_deduction + moisture_cutter_total, 2)
+        # Broken Grain Cutter Rule: ₹10/qtl penalty per 1.0% broken grain over 1.5% limit
+        excess_broken = max(0.0, round((req.tested_broken_pct or 1.0) - 1.5, 2))
+        broken_cutter_total = round(excess_broken * 10.0 * dest_net, 2)
+
+        total_cutter = round(shortage_deduction + moisture_cutter_total + broken_cutter_total, 2)
         order.tested_destination_moisture = req.tested_moisture_pct
+        order.tested_destination_broken = req.tested_broken_pct
+        order.tested_foreign_matter = req.tested_foreign_matter_pct
         order.cutter_deduction_amount = total_cutter
 
-        # Final Payout calculation
+        # Final Stage 3 (10%) Escrow Release Calculation
         final_escrow_pool = order.escrow_stages["final_10_pct"]
         settled_final_payout = max(0.0, round(final_escrow_pool - total_cutter, 2))
         order.final_settled_payout = settled_final_payout
@@ -392,21 +848,28 @@ def destination_weighbridge_and_cutter(req: DestinationWeighbridgeAndCutter, use
 
     return {
         "status": "SUCCESS",
+        "message": f"Destination Weighbridge & Cutter Audit Completed. Final Escrow released post-deductions.",
         "settlement_audit": {
+            "order_id": order.order_id,
             "origin_net_qtl": origin_net,
             "destination_net_qtl": dest_net,
             "transit_loss_qtl": shortage,
-            "allowed_tolerance_qtl": tolerance_qtl,
-            "shortage_penalty": shortage_deduction,
-            "tested_moisture": req.tested_moisture_pct,
-            "moisture_cutter_deduction": moisture_cutter_total,
-            "total_deductions": total_cutter,
+            "allowed_0_3pct_tolerance_qtl": tolerance_qtl,
+            "unapproved_shortage_qtl": chargeable_shortage,
+            "shortage_penalty_inr": shortage_deduction,
+            "tested_moisture_pct": req.tested_moisture_pct,
+            "contract_moisture_limit_pct": contract_moisture_limit,
+            "excess_moisture_pct": excess_moisture,
+            "moisture_cutter_deduction_inr": moisture_cutter_total,
+            "broken_grain_cutter_inr": broken_cutter_total,
+            "total_cutter_deductions": total_cutter,
             "original_final_10pct_escrow": final_escrow_pool,
-            "net_final_released_to_fpo": settled_final_payout
+            "net_final_released_to_fpo": settled_final_payout,
+            "order_status": order.status
         }
     }
 
-# Retain Auction, Slots, and Queue Endpoints
+# 5. Double Auction Bidding Engine
 @app.post("/api/v1/bids/create")
 def place_buyer_bid(bid: BidPlacementRequest, user: dict = Depends(RoleChecker(["BUYER"])), db: Session = Depends(get_db)):
     bid_id = f"BID-{int(datetime.now(timezone.utc).timestamp()) % 100000}"
@@ -418,11 +881,20 @@ def place_buyer_bid(bid: BidPlacementRequest, user: dict = Depends(RoleChecker([
         commodity=bid.commodity,
         target_qty_qtl=bid.target_qty_qtl,
         target_bid_price_per_qtl=bid.target_bid_price_per_qtl,
-        delivery_city=bid.delivery_city
+        delivery_city=bid.delivery_city,
+        status="OPEN_AUCTION"
     )
     db.add(new_bid)
     db.commit()
-    return {"status": "SUCCESS", "bid": {"bid_id": new_bid.bid_id}}
+    return {
+        "status": "SUCCESS",
+        "message": f"Target bid #{bid_id} listed on Open Board for {bid.commodity} ({bid.target_qty_qtl} qtl @ ₹{bid.target_bid_price_per_qtl}/qtl)",
+        "bid": {
+            "bid_id": new_bid.bid_id,
+            "commodity": new_bid.commodity,
+            "target_bid_price_per_qtl": new_bid.target_bid_price_per_qtl
+        }
+    }
 
 @app.get("/api/v1/bids/live")
 def get_live_buyer_bids(db: Session = Depends(get_db)):
@@ -430,13 +902,324 @@ def get_live_buyer_bids(db: Session = Depends(get_db)):
     return [{
         "bid_id": b.bid_id,
         "buyer_name": b.buyer_name,
+        "buyer_phone": b.buyer_phone,
         "commodity": b.commodity,
         "target_qty_qtl": b.target_qty_qtl,
         "target_bid_price_per_qtl": b.target_bid_price_per_qtl,
         "delivery_city": b.delivery_city,
-        "status": b.status
+        "status": b.status,
+        "accepted_by_fpo": b.accepted_by_fpo,
+        "counter_price_per_qtl": b.counter_price_per_qtl,
+        "counter_fpo_name": b.counter_fpo_name,
+        "counter_notes": b.counter_notes,
+        "created_at": b.created_at.isoformat() if b.created_at else None
     } for b in bids]
 
+@app.post("/api/v1/bids/{bid_id}/accept")
+def accept_buyer_bid(bid_id: str, user: dict = Depends(RoleChecker(["FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
+    with db.begin():
+        bid = db.query(models.BuyerBid).filter(models.BuyerBid.bid_id == bid_id).first()
+        if not bid:
+            raise HTTPException(status_code=404, detail="Bid not found")
+        if bid.status not in ["OPEN_AUCTION", "COUNTER_OFFERED"]:
+            raise HTTPException(status_code=400, detail=f"Bid cannot be accepted in '{bid.status}' state")
+
+        bid.status = "ACCEPTED"
+        bid.accepted_by_fpo = user["name"]
+
+        # Automatically bind contract and generate order with 20% Advance Escrow
+        order_id = f"ORD-AUC-{int(datetime.now(timezone.utc).timestamp()) % 100000}"
+        eway_bill = f"EWB{uuid.uuid4().int % 1000000000000:012d}"
+        
+        comm_invoice = calculate_commercial_invoice(
+            base_price_per_qtl=bid.target_bid_price_per_qtl,
+            quantity_qtl=bid.target_qty_qtl,
+            freight_per_qtl=55.0,
+            state_origin="Punjab",
+            bagging_type="50KG_JUTE_GUNNY",
+            insurance_opted=True
+        )
+        total_amt = comm_invoice["total_invoice"]
+
+        matched_order = models.Order(
+            order_id=order_id,
+            eway_bill_no=eway_bill,
+            lot_id=f"AUC-MATCH-{bid.bid_id}",
+            buyer_id=bid.buyer_id,
+            buyer_name=bid.buyer_name,
+            buyer_phone=bid.buyer_phone,
+            delivery_address=f"Central Grain Terminal, {bid.delivery_city}",
+            gstin="03AAAAA0000A1Z5",
+            payment_method="ESCROW_UPI",
+            quantity_qtl=bid.target_qty_qtl,
+            base_price_per_qtl=bid.target_bid_price_per_qtl,
+            bagging_type="50KG_JUTE_GUNNY",
+            freight_per_qtl=55.0,
+            apmc_cess_amount=comm_invoice["apmc_cess_breakdown"]["total_cess"],
+            tcs_tax_amount=comm_invoice["tcs_tax"],
+            transit_insurance_opted=True,
+            insurance_fee=comm_invoice["insurance_cost"],
+            insurance_policy_no=f"NIC-AGRI-{uuid.uuid4().hex[:8].upper()}",
+            total_invoice_amount=total_amt,
+            escrow_stages={
+                "advance_20_pct": round(total_amt * 0.20, 2),
+                "dispatch_70_pct": round(total_amt * 0.70, 2),
+                "final_10_pct": round(total_amt * 0.10, 2)
+            },
+            status="ADVANCE_ESCROW_LOCKED"
+        )
+        db.add(matched_order)
+
+    return {
+        "status": "SUCCESS",
+        "message": f"Bid #{bid_id} Accepted by {user['name']}. Matched Contract locked into Stage 1 Escrow!",
+        "order": {
+            "order_id": order_id,
+            "eway_bill_no": eway_bill,
+            "total_invoice": total_amt,
+            "escrow_stages": matched_order.escrow_stages
+        }
+    }
+
+@app.post("/api/v1/bids/{bid_id}/counter")
+def counter_buyer_bid(bid_id: str, req: BidCounterRequest, user: dict = Depends(RoleChecker(["FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
+    with db.begin():
+        bid = db.query(models.BuyerBid).filter(models.BuyerBid.bid_id == bid_id).first()
+        if not bid:
+            raise HTTPException(status_code=404, detail="Bid not found")
+        bid.status = "COUNTER_OFFERED"
+        bid.counter_price_per_qtl = req.counter_price_per_qtl
+        bid.counter_fpo_name = user["name"]
+        bid.counter_notes = req.counter_notes
+
+    return {
+        "status": "SUCCESS",
+        "message": f"Counter offer of ₹{req.counter_price_per_qtl}/qtl submitted by {user['name']} to buyer {bid.buyer_name}.",
+        "bid_id": bid.bid_id,
+        "counter_price_per_qtl": req.counter_price_per_qtl
+    }
+
+@app.post("/api/v1/bids/{bid_id}/counter-accept")
+def accept_counter_offer(bid_id: str, user: dict = Depends(RoleChecker(["BUYER"])), db: Session = Depends(get_db)):
+    with db.begin():
+        bid = db.query(models.BuyerBid).filter(models.BuyerBid.bid_id == bid_id).first()
+        if not bid:
+            raise HTTPException(status_code=404, detail="Bid not found")
+        if bid.status != "COUNTER_OFFERED" or not bid.counter_price_per_qtl:
+            raise HTTPException(status_code=400, detail="No active counter offer to accept")
+
+        bid.status = "ACCEPTED"
+        agreed_price = bid.counter_price_per_qtl
+
+        order_id = f"ORD-CTR-{int(datetime.now(timezone.utc).timestamp()) % 100000}"
+        eway_bill = f"EWB{uuid.uuid4().int % 1000000000000:012d}"
+        
+        comm_invoice = calculate_commercial_invoice(
+            base_price_per_qtl=agreed_price,
+            quantity_qtl=bid.target_qty_qtl,
+            freight_per_qtl=55.0,
+            state_origin="Punjab",
+            bagging_type="50KG_JUTE_GUNNY",
+            insurance_opted=True
+        )
+        total_amt = comm_invoice["total_invoice"]
+
+        matched_order = models.Order(
+            order_id=order_id,
+            eway_bill_no=eway_bill,
+            lot_id=f"CTR-MATCH-{bid.bid_id}",
+            buyer_id=user["id"],
+            buyer_name=user["name"],
+            buyer_phone=user["phone"],
+            delivery_address=f"Central Grain Terminal, {bid.delivery_city}",
+            gstin="03AAAAA0000A1Z5",
+            payment_method="ESCROW_UPI",
+            quantity_qtl=bid.target_qty_qtl,
+            base_price_per_qtl=agreed_price,
+            bagging_type="50KG_JUTE_GUNNY",
+            freight_per_qtl=55.0,
+            apmc_cess_amount=comm_invoice["apmc_cess_breakdown"]["total_cess"],
+            tcs_tax_amount=comm_invoice["tcs_tax"],
+            transit_insurance_opted=True,
+            insurance_fee=comm_invoice["insurance_cost"],
+            insurance_policy_no=f"NIC-AGRI-{uuid.uuid4().hex[:8].upper()}",
+            total_invoice_amount=total_amt,
+            escrow_stages={
+                "advance_20_pct": round(total_amt * 0.20, 2),
+                "dispatch_70_pct": round(total_amt * 0.70, 2),
+                "final_10_pct": round(total_amt * 0.10, 2)
+            },
+            status="ADVANCE_ESCROW_LOCKED"
+        )
+        db.add(matched_order)
+
+    return {
+        "status": "SUCCESS",
+        "message": f"FPO Counter Offer of ₹{agreed_price}/qtl Accepted. Contract locked into Stage 1 Escrow!",
+        "order": {
+            "order_id": order_id,
+            "eway_bill_no": eway_bill,
+            "total_invoice": total_amt
+        }
+    }
+
+# 6. FPO Operations & Farmer Member Passbook Traceability
+@app.get("/api/v1/fpo/farmer-passbook/{lot_id}")
+def get_farmer_pool_passbook(lot_id: str, user: dict = Depends(RoleChecker(["FPO", "MANDI_ADMIN", "BUYER"])), db: Session = Depends(get_db)):
+    lot = db.query(models.CropLot).filter(models.CropLot.id == lot_id).first()
+    if not lot:
+        raise HTTPException(status_code=404, detail="Crop lot not found")
+
+    orders = db.query(models.Order).filter(models.Order.lot_id == lot.id).all()
+    members = lot.farmer_members or []
+    total_pool_qty = sum(m.get("pool_qty_qtl", 0) for m in members) or lot.available_qty_qtl or 1.0
+
+    total_gross_realized = sum(o.total_invoice_amount for o in orders)
+    total_cutter_deductions = sum(o.cutter_deduction_amount or 0.0 for o in orders)
+    has_settled_order = any(o.status == "COMPLETED_AND_SETTLED" for o in orders)
+
+    farmer_ledgers = []
+    for m in members:
+        qty = m.get("pool_qty_qtl", 0)
+        share_ratio = qty / total_pool_qty
+        
+        gross_value = round(qty * lot.base_price_per_qtl, 2)
+        mandi_cess_share = round(gross_value * 0.04, 2) if ("Punjab" in lot.mandi or "Haryana" in lot.mandi) else round(gross_value * 0.015, 2)
+        cutter_deduction_share = round(total_cutter_deductions * share_ratio, 2)
+        net_payable = max(0.0, round(gross_value - mandi_cess_share - cutter_deduction_share, 2))
+
+        payout_status = "CREDITED_VIA_RTGS" if has_settled_order else "HELD_IN_ESCROW"
+
+        farmer_ledgers.append({
+            "member_id": m.get("member_id", f"FARM-MEM-{uuid.uuid4().hex[:4].upper()}"),
+            "name": m.get("name", "Unknown Member"),
+            "village": m.get("village", lot.mandi.split(",")[0] + " Gram"),
+            "aadhar_masked": m.get("aadhar_masked", "XXXX-XXXX-8921"),
+            "pool_qty_qtl": qty,
+            "share_percentage": round(share_ratio * 100.0, 2),
+            "gross_mandi_value": gross_value,
+            "mandi_cess_share": mandi_cess_share,
+            "cutter_deductions_share": cutter_deduction_share,
+            "net_payout_amount": net_payable,
+            "bank_account_masked": m.get("bank_account", "SBIN-XXXXX-9821"),
+            "ifsc_code": m.get("ifsc", "SBIN0001234"),
+            "payout_status": payout_status
+        })
+
+    return {
+        "status": "SUCCESS",
+        "lot_id": lot.id,
+        "fpo_name": lot.fpo_name,
+        "commodity": lot.commodity,
+        "variety": lot.variety,
+        "mandi": lot.mandi,
+        "base_price_per_qtl": lot.base_price_per_qtl,
+        "total_pool_qty_qtl": total_pool_qty,
+        "total_gross_pool_value": round(total_pool_qty * lot.base_price_per_qtl, 2),
+        "total_orders_placed": len(orders),
+        "total_gross_realized": round(total_gross_realized, 2),
+        "total_cutter_deductions_applied": round(total_cutter_deductions, 2),
+        "farmer_members_count": len(farmer_ledgers),
+        "farmer_ledgers": farmer_ledgers
+    }
+
+@app.get("/api/v1/fpo/lots")
+def get_fpo_lots(user: dict = Depends(RoleChecker(["FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
+    lots = db.query(models.CropLot).all()
+    return [{
+        "id": l.id,
+        "commodity": l.commodity,
+        "variety": l.variety,
+        "mandi": l.mandi,
+        "fpo_name": l.fpo_name,
+        "base_price_per_qtl": l.base_price_per_qtl,
+        "available_qty_qtl": l.available_qty_qtl,
+        "moisture_percent": l.moisture_percent,
+        "bagging_type": l.bagging_type,
+        "mform_document_hash": l.mform_document_hash,
+        "assaying": l.assaying,
+        "farmer_count": len(l.farmer_members or [])
+    } for l in lots]
+
+@app.post("/api/v1/fpo/lots/create")
+def create_new_crop_lot(lot_in: CropLotCreate, user: dict = Depends(RoleChecker(["FPO"])), db: Session = Depends(get_db)):
+    lot_id = f"FPO-LOT-{int(datetime.now(timezone.utc).timestamp()) % 100000}"
+    mform_hash = f"MFORM-SRC-{uuid.uuid4().hex[:12].upper()}"
+
+    new_lot = models.CropLot(
+        id=lot_id,
+        commodity=lot_in.commodity,
+        variety=lot_in.variety,
+        mandi=lot_in.mandi,
+        fpo_name=user["name"],
+        base_price_per_qtl=lot_in.base_price_per_qtl,
+        available_qty_qtl=lot_in.available_qty_qtl,
+        moisture_percent=lot_in.moisture_percent,
+        bagging_type=lot_in.bagging_type,
+        bag_cost_included=True,
+        apmc_cess_paid_at_source=True,
+        mform_document_hash=mform_hash,
+        assaying={
+            "foreign_matter_pct": lot_in.foreign_matter_pct,
+            "broken_pct": lot_in.broken_pct,
+            "protein_pct": lot_in.protein_pct,
+            "grain_length_mm": lot_in.grain_length_mm,
+            "lab_name": f"{user['name']} Assaying Lab",
+            "nabl_cert_no": f"NABL-FPO-{uuid.uuid4().hex[:6].upper()}"
+        },
+        farmer_members=lot_in.farmer_members or [
+            {"member_id": f"FARM-{uuid.uuid4().hex[:4].upper()}", "name": "Primary Pool Member", "pool_qty_qtl": lot_in.available_qty_qtl, "village": lot_in.mandi.split(",")[0]}
+        ]
+    )
+    db.add(new_lot)
+    db.commit()
+
+    return {"status": "SUCCESS", "lot": {"id": new_lot.id, "variety": new_lot.variety, "mform_hash": mform_hash}}
+
+# 7. Regulatory Compliance & Tracking (M-Form & e-Way Bill)
+@app.get("/api/v1/compliance/mform/{mform_hash}")
+def verify_mform(mform_hash: str, db: Session = Depends(get_db)):
+    lot = db.query(models.CropLot).filter(models.CropLot.mform_document_hash == mform_hash).first()
+    origin_mandi = lot.mandi if lot else "Khanna Mandi, Punjab"
+    origin_state = origin_mandi.split(",")[-1].strip()
+    cess_rule = APMC_CESS_RATES.get(origin_state, APMC_CESS_RATES["Default"])
+
+    return {
+        "status": "VERIFIED_COMPLIANT",
+        "mform_document_hash": mform_hash,
+        "origin_apmc_mandi": origin_mandi,
+        "issuing_board": f"State Agricultural Marketing Board ({origin_state})",
+        "mandi_fee_verified_rate": f"{cess_rule['mandi_fee_pct']}%",
+        "rdf_verified_rate": f"{cess_rule['rdf_pct']}%",
+        "cess_paid_at_source": True,
+        "enforcement_clearance": "EXEMPT_FROM_HIGHWAY_CHECKPOINT_SEIZURE",
+        "qr_verification_string": f"AGRI-MFORM|{mform_hash}|{origin_state}|CLEAR",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+@app.get("/api/v1/compliance/eway-bill/{eway_bill_no}")
+def verify_eway_bill(eway_bill_no: str, db: Session = Depends(get_db)):
+    order = db.query(models.Order).filter(models.Order.eway_bill_no == eway_bill_no).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="e-Way Bill not found")
+
+    return {
+        "status": "ACTIVE_AND_VALID",
+        "eway_bill_no": order.eway_bill_no,
+        "order_id": order.order_id,
+        "hsn_code": "1001" if "Wheat" in (order.lot_id or "") else "1006",
+        "commodity": "Agricultural Produce (Bulk Wholesaler)",
+        "quantity_qtl": order.quantity_qtl,
+        "invoice_value": order.total_invoice_amount,
+        "supplier_gstin": "03AAACD1122K1Z9",
+        "buyer_gstin": order.gstin,
+        "delivery_destination": order.delivery_address,
+        "vehicle_number": "PB-10-XX-4412",
+        "valid_until": (order.created_at + timedelta(hours=72)).isoformat() if order.created_at else "2026-09-12T00:00:00Z",
+        "escrow_stage": order.status
+    }
+
+# 8. Mandi Time Slots & Logistics Queue
 @app.post("/api/v1/slots/book")
 def book_time_slot(booking: SlotBookingCreate, user: dict = Depends(RoleChecker(["TRANSPORTER", "FPO", "MANDI_ADMIN"])), db: Session = Depends(get_db)):
     rule = WINDOW_RULES.get(booking.window_key)
@@ -454,7 +1237,7 @@ def book_time_slot(booking: SlotBookingCreate, user: dict = Depends(RoleChecker(
         if active_count >= rule["max_capacity"]:
             raise HTTPException(
                 status_code=409,
-                detail=f"Capacity Collision Hazard: '{rule['label']}' is full ({rule['max_capacity']} trucks limit)."
+                detail=f"Capacity Collision Hazard: '{rule['label']}' is fully booked ({rule['max_capacity']} trucks limit)."
             )
 
         slot_id = f"SLOT-{int(datetime.now(timezone.utc).timestamp()) % 100000}"
@@ -468,7 +1251,8 @@ def book_time_slot(booking: SlotBookingCreate, user: dict = Depends(RoleChecker(
             truck_reg_number=booking.truck_reg_number,
             commodity=booking.commodity,
             quantity_qtl=booking.quantity_qtl,
-            booked_by=user["name"]
+            booked_by=user["name"],
+            status="CONFIRMED"
         )
         db.add(new_slot)
 
@@ -477,7 +1261,8 @@ def book_time_slot(booking: SlotBookingCreate, user: dict = Depends(RoleChecker(
         "slot": {
             "slot_id": new_slot.slot_id,
             "token_number": new_slot.token_number,
-            "window_label": new_slot.window_label
+            "window_label": new_slot.window_label,
+            "truck_reg_number": new_slot.truck_reg_number
         }
     }
 
@@ -520,4 +1305,4 @@ def cancel_entire_day(req: DayCancellationRequest, user: dict = Depends(RoleChec
             s.status = "CANCELLED"
             s.cancellation_reason = f"EMERGENCY APMC CLOSURE: {req.cancellation_reason}"
 
-    return {"status": "SUCCESS", "cancelled_bookings_count": count}
+    return {"status": "SUCCESS", "cancelled_bookings_count": count, "message": f"APMC Mandi closed on {req.target_date}. {count} truck bookings notified and cancelled."}

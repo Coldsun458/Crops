@@ -65,17 +65,24 @@ class Order(Base):
     cutter_deduction_amount = Column(Float, default=0.0)
     final_settled_payout = Column(Float, nullable=True)
 
+    bagging_type = Column(String(32), default="50KG_JUTE_GUNNY")
+    tested_destination_broken = Column(Float, nullable=True)
+    tested_foreign_matter = Column(Float, nullable=True)
+    insurance_policy_no = Column(String(64), nullable=True)
+
     status = Column(String(32), default="ADVANCE_ESCROW_LOCKED", index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-class SampleCourierRequest(BaseModel := Base):
+class SampleCourierRequest(Base):
     __tablename__ = "sample_requests"
 
     sample_id = Column(String(32), primary_key=True, index=True)
     lot_id = Column(String(32), ForeignKey("crop_lots.id"), nullable=False)
     buyer_name = Column(String(128), nullable=False)
+    buyer_phone = Column(String(20), nullable=True)
     delivery_address = Column(String(256), nullable=False)
     courier_tracking_no = Column(String(64), nullable=False)
+    courier_partner = Column(String(64), default="DTDC Express Agri-Cold Courier")
     fee_paid = Column(Float, default=450.0)
     status = Column(String(32), default="DISPATCHED", index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -93,6 +100,9 @@ class BuyerBid(Base):
     delivery_city = Column(String(64), nullable=False)
     status = Column(String(32), default="OPEN_AUCTION", index=True)
     accepted_by_fpo = Column(String(128), nullable=True)
+    counter_price_per_qtl = Column(Float, nullable=True)
+    counter_fpo_name = Column(String(128), nullable=True)
+    counter_notes = Column(String(256), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class ScheduledSlot(Base):

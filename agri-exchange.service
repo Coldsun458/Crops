@@ -1,0 +1,17 @@
+[Unit]
+Description=Agri-Exchange Wholesaler Production Engine
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/agri-exchange
+ExecStart=/opt/agri-exchange/venv/bin/gunicorn -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 main:app
+Restart=always
+RestartSec=5
+Environment=DATABASE_URL=sqlite:////opt/agri-exchange/agri_exchange.db
+Environment=SECRET_KEY=agri-exchange-jwt-production-secret-2026
+Environment=ALGORITHM=HS256
+
+[Install]
+WantedBy=multi-user.target

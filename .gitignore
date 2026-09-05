@@ -1,0 +1,26 @@
+# Environments & Packages
+venv/
+.env
+*.env
+*.egg-info/
+dist/
+build/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Databases & local state
+*.db
+*.sqlite3
+agri_exchange.db
+backend/agri_exchange.db
+
+# Logs
+*.log
+
+# OS artifacts
+.DS_Store
+Thumbs.db
