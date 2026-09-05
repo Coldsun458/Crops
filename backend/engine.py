@@ -1,10 +1,7 @@
 import math
-import os
 import httpx
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
-
-GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+from typing import Dict, List
 
 MSP_BENCHMARKS = {
     "Wheat": 2425.0,
@@ -66,46 +63,10 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return round(r * c * 1.22, 1)
 
-_DISTANCE_MATRIX_CACHE = {}
-
-async def fetch_google_distance_matrix(origin_city: str, dest_city: str, api_key: str = None) -> Optional[dict]:
-    key = api_key or os.getenv("GOOGLE_MAPS_API_KEY", "").strip()
-    if not key or "Demo" in key or "Sample" in key:
-        return None
-    cache_key = f"{origin_city}->{dest_city}"
-    if cache_key in _DISTANCE_MATRIX_CACHE:
-        return _DISTANCE_MATRIX_CACHE[cache_key]
-
-    url = f"https://maps.googleapis.com/maps/api/distancematrix/json?origins={origin_city},India&destinations={dest_city},India&key={key}"
-    try:
-        async with httpx.AsyncClient(timeout=2.0) as client:
-            res = await client.get(url)
-            if res.status_code == 200:
-                data = res.json()
-                if data.get("status") == "OK" and data.get("rows"):
-                    elem = data["rows"][0]["elements"][0]
-                    if elem.get("status") == "OK":
-                        dist_km = round(elem["distance"]["value"] / 1000.0, 1)
-                        dur_hrs = round(elem["duration"]["value"] / 3600.0, 1)
-                        result = {"distance_km": dist_km, "duration_hours": dur_hrs, "source": "Google Maps Distance Matrix"}
-                        _DISTANCE_MATRIX_CACHE[cache_key] = result
-                        return result
-    except Exception:
-        pass
-    return None
-
-_WEATHER_CACHE = {}
-
 async def fetch_live_weather(lat: float, lon: float) -> dict:
-    cache_key = f"{round(lat, 2)},{round(lon, 2)}"
-    if cache_key in _WEATHER_CACHE:
-        entry = _WEATHER_CACHE[cache_key]
-        if (datetime.now(timezone.utc).timestamp() - entry["ts"]) < 600:
-            return entry["data"]
-
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,precipitation&hourly=precipitation_probability&forecast_days=1"
     try:
-        async with httpx.AsyncClient(timeout=2.0) as client:
+        async with httpx.AsyncClient(timeout=3.5) as client:
             res = await client.get(url)
             if res.status_code == 200:
                 data = res.json()
@@ -120,13 +81,11 @@ async def fetch_live_weather(lat: float, lon: float) -> dict:
                 elif rain_prob > 0.3:
                     condition = "Scattered Rain"
 
-                weather_res = {
+                return {
                     "temp_c": current.get("temperature_2m", 28),
                     "condition": condition,
                     "rain_prob": round(rain_prob, 2)
                 }
-                _WEATHER_CACHE[cache_key] = {"ts": datetime.now(timezone.utc).timestamp(), "data": weather_res}
-                return weather_res
     except Exception:
         pass
     return {"temp_c": 29, "condition": "Clear", "rain_prob": 0.05}
@@ -229,18 +188,11 @@ async def calculate_best_buy(
         waypoint_weather = await fetch_live_weather(waypoint_info["lat"], waypoint_info["lon"])
         effective_rain_risk = max(origin_weather["rain_prob"], waypoint_weather["rain_prob"])
 
-        gmaps_data = await fetch_google_distance_matrix(hub.get("city", mandi_key), buyer_city)
-        if gmaps_data:
-            distance_km = gmaps_data["distance_km"]
-            transit_hours = gmaps_data["duration_hours"]
-            routing_source = "Google Maps Distance Matrix"
-        else:
-            distance_km = haversine_distance(
-                hub["lat"], hub["lon"], buyer_coords["lat"], buyer_coords["lon"]
-            )
-            transit_hours = round(distance_km / 45.0, 1)
-            routing_source = "National Highway Corridor (NH-44/48)"
+        distance_km = haversine_distance(
+            hub["lat"], hub["lon"], buyer_coords["lat"], buyer_coords["lon"]
+        )
 
+        transit_hours = round(distance_km / 45.0, 1)
         toll_estimate = round(distance_km * 0.85, 2)
         freight_per_qtl = round((distance_km * 0.038) + 25.0 + (toll_estimate / 100), 2)
 
@@ -298,7 +250,6 @@ async def calculate_best_buy(
             **item,
             "distance_km": distance_km,
             "transit_hours": transit_hours,
-            "routing_source": routing_source,
             "freight_per_qtl": freight_per_qtl,
             "origin_weather": origin_weather,
             "waypoint_weather": waypoint_weather,

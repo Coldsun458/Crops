@@ -1,7 +1,4 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()
-
 import uuid
 import jwt
 from datetime import datetime, timezone, timedelta
@@ -533,9 +530,6 @@ seed_initial_data(force=True)
 class LoginRequest(BaseModel):
     email: str
 
-class MapsConfigUpdate(BaseModel):
-    api_key: str
-
 class BestBuyQuery(BaseModel):
     commodity: str = "Wheat"
     buyer_city: str = "Jalandhar"
@@ -657,48 +651,6 @@ def login(req: LoginRequest):
 @app.get("/api/v1/auth/me")
 def verify_current_identity(user: dict = Depends(get_current_user)):
     return {"status": "AUTHENTICATED", "user": user}
-
-@app.get("/api/v1/config/maps")
-def get_maps_config():
-    key = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()
-    masked = f"{key[:6]}...{key[-4:]}" if len(key) >= 10 else ("Configured" if key else "")
-    return {
-        "status": "CONFIGURED" if key else "NOT_CONFIGURED",
-        "has_key": bool(key),
-        "masked_key": masked,
-        "provider": "Google Maps Platform",
-        "apis_supported": [
-            "Maps JavaScript API (Interactive Mandi Map)",
-            "Distance Matrix API (Live Highway Driving Distance & Transit Times)",
-            "Places API (Mill / APMC Mandi Address Autocomplete)"
-        ],
-        "console_url": "https://console.cloud.google.com/google/maps-apis/credentials"
-    }
-
-@app.post("/api/v1/config/maps")
-def update_maps_config(body: MapsConfigUpdate):
-    key = body.api_key.strip()
-    os.environ["GOOGLE_MAPS_API_KEY"] = key
-    try:
-        env_path = ".env"
-        lines = []
-        if os.path.exists(env_path):
-            with open(env_path, "r") as f:
-                lines = f.readlines()
-        lines = [l for l in lines if not l.startswith("GOOGLE_MAPS_API_KEY=")]
-        lines.append(f"GOOGLE_MAPS_API_KEY={key}\n")
-        with open(env_path, "w") as f:
-            f.writelines(lines)
-    except Exception:
-        pass
-
-    masked = f"{key[:6]}...{key[-4:]}" if len(key) >= 10 else ("Configured" if key else "")
-    return {
-        "status": "SUCCESS",
-        "message": "Google Maps API Key updated and persisted successfully.",
-        "has_key": bool(key),
-        "masked_key": masked
-    }
 
 @app.get("/api/v1/market/registry")
 def get_market_registry():
