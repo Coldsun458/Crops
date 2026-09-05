@@ -35,14 +35,14 @@ CORRIDOR_WAYPOINTS = {
 }
 
 MANDI_REGISTRY = {
-    "Khanna": {"lat": 30.7071, "lon": 76.2197, "state": "Punjab", "fpo": "Doaba Agri Producers Co."},
-    "Karnal": {"lat": 29.6857, "lon": 76.9905, "state": "Haryana", "fpo": "Karnal Green Fields FPO"},
-    "Indore": {"lat": 22.7196, "lon": 75.8577, "state": "Madhya Pradesh", "fpo": "Malwa Kisan Samriddhi FPO"},
-    "Kota": {"lat": 25.2138, "lon": 75.8648, "state": "Rajasthan", "fpo": "Hadoti Krishi Vikash"},
-    "Bareilly": {"lat": 28.3670, "lon": 79.4304, "state": "Uttar Pradesh", "fpo": "Rohilkhand Kisan Union"},
-    "Rajkot": {"lat": 22.3039, "lon": 70.8022, "state": "Gujarat", "fpo": "Saurashtra Agro Cluster"},
-    "Bathinda": {"lat": 30.2110, "lon": 74.9455, "state": "Punjab", "fpo": "Bathinda Farmers Producer Co."},
-    "Bhatinda": {"lat": 30.2110, "lon": 74.9455, "state": "Punjab", "fpo": "Bathinda Farmers Producer Co."}
+    "Khanna": {"lat": 30.7071, "lon": 76.2197, "state": "Punjab", "fpo": "Doaba Farmer Producer Company Ltd."},
+    "Karnal": {"lat": 29.6857, "lon": 76.9905, "state": "Haryana", "fpo": "Taraori Basmati Growers Farmer Producer Co. Ltd."},
+    "Indore": {"lat": 22.7196, "lon": 75.8577, "state": "Madhya Pradesh", "fpo": "Malwa Kisan Samriddhi Producer Co. Ltd."},
+    "Kota": {"lat": 25.2138, "lon": 75.8648, "state": "Rajasthan", "fpo": "Hadoti Kisan Vikas Agro Producer Co. Ltd."},
+    "Bareilly": {"lat": 28.3670, "lon": 79.4304, "state": "Uttar Pradesh", "fpo": "Rohilkhand Krishak Utpadan Producer Co. Ltd."},
+    "Rajkot": {"lat": 22.3039, "lon": 70.8022, "state": "Gujarat", "fpo": "Saurashtra Kisan Samriddhi Agro Cluster Ltd."},
+    "Bathinda": {"lat": 30.2110, "lon": 74.9455, "state": "Punjab", "fpo": "Bathinda Progressive Farmers Producer Co. Ltd."},
+    "Bhatinda": {"lat": 30.2110, "lon": 74.9455, "state": "Punjab", "fpo": "Bathinda Progressive Farmers Producer Co. Ltd."}
 }
 
 CITY_COORDINATES = {
