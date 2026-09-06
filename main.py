@@ -342,6 +342,141 @@ def seed_initial_data(force: bool = False):
                     {"member_id": "FARM-HR-51", "name": "Naresh Kumar", "village": "Taraori, Karnal", "pool_qty_qtl": 250.0, "aadhar_masked": "XXXX-XXXX-9910", "bank_account": "35918274102", "ifsc": "SBIN0002494"},
                     {"member_id": "FARM-HR-52", "name": "Rakesh Sharma", "village": "Nilokheri, Karnal", "pool_qty_qtl": 200.0, "aadhar_masked": "XXXX-XXXX-5519", "bank_account": "1121000100381928", "ifsc": "PUNB0112100"}
                 ]
+            ),
+            models.CropLot(
+                id="FPO-LOT-301",
+                commodity="Maize",
+                variety="Yellow Feed Grade Premium",
+                mandi="Kota, Rajasthan",
+                fpo_name="Hadoti Kisan Vikas Agro Producer Co. Ltd.",
+                base_price_per_qtl=2240.0,
+                available_qty_qtl=800.0,
+                moisture_percent=12.0,
+                bagging_type="50KG_PP_BAG",
+                bag_cost_included=True,
+                apmc_cess_paid_at_source=True,
+                mform_document_hash="RSAMB/AP-2026/KOT-99412",
+                assaying={
+                    "foreign_matter_pct": 0.8,
+                    "broken_pct": 1.2,
+                    "protein_pct": 9.2,
+                    "grain_length_mm": 5.4,
+                    "lab_name": "Rajasthan State Agricultural Marketing Board, Kota",
+                    "nabl_cert_no": "TC-5935",
+                    "grade": "Feed Quality Grade-1"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-RJ-11", "name": "Mohan Lal", "village": "Digod, Kota", "pool_qty_qtl": 450.0, "aadhar_masked": "XXXX-XXXX-8812", "bank_account": "02190100055192", "ifsc": "BARB0KOTAMA"},
+                    {"member_id": "FARM-RJ-12", "name": "Kishan Singh", "village": "Sultanpur, Kota", "pool_qty_qtl": 350.0, "aadhar_masked": "XXXX-XXXX-3341", "bank_account": "32948192088", "ifsc": "SBIN0031264"}
+                ]
+            ),
+            models.CropLot(
+                id="FPO-LOT-302",
+                commodity="Maize",
+                variety="Malwa Sweet Golden Corn",
+                mandi="Indore, Madhya Pradesh",
+                fpo_name="Malwa Kisan Samriddhi Producer Co. Ltd.",
+                base_price_per_qtl=2210.0,
+                available_qty_qtl=650.0,
+                moisture_percent=11.5,
+                bagging_type="50KG_PP_BAG",
+                bag_cost_included=True,
+                apmc_cess_paid_at_source=True,
+                mform_document_hash="MPAMB/AP-2026/IND-88129",
+                assaying={
+                    "foreign_matter_pct": 0.7,
+                    "broken_pct": 1.1,
+                    "protein_pct": 9.6,
+                    "grain_length_mm": 5.6,
+                    "lab_name": "MP State Marketing Board Quality Lab, Indore",
+                    "nabl_cert_no": "TC-8122",
+                    "grade": "Milling Grade Yellow Maize"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-MP-31", "name": "Dinesh Solanki", "village": "Mhow, Indore", "pool_qty_qtl": 350.0, "aadhar_masked": "XXXX-XXXX-7712", "bank_account": "01120100099194", "ifsc": "BARB0INDORE"},
+                    {"member_id": "FARM-MP-32", "name": "Radheshyam Jat", "village": "Betma, Indore", "pool_qty_qtl": 300.0, "aadhar_masked": "XXXX-XXXX-4431", "bank_account": "38910284999", "ifsc": "SBIN0030018"}
+                ]
+            ),
+            models.CropLot(
+                id="FPO-LOT-401",
+                commodity="Gram",
+                variety="Desi Chana Bold (Malwa Special)",
+                mandi="Indore, Madhya Pradesh",
+                fpo_name="Malwa Kisan Samriddhi Producer Co. Ltd.",
+                base_price_per_qtl=5450.0,
+                available_qty_qtl=500.0,
+                moisture_percent=9.5,
+                bagging_type="50KG_JUTE_GUNNY",
+                bag_cost_included=True,
+                apmc_cess_paid_at_source=True,
+                mform_document_hash="MPAMB/AP-2026/IND-99120",
+                assaying={
+                    "foreign_matter_pct": 0.5,
+                    "broken_pct": 0.8,
+                    "protein_pct": 21.4,
+                    "grain_length_mm": 6.2,
+                    "lab_name": "MP Quality Testing Center, Indore",
+                    "nabl_cert_no": "TC-8125",
+                    "grade": "Bold Premium Desi Chana"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-MP-41", "name": "Vikram Patel", "village": "Hatod, Indore", "pool_qty_qtl": 300.0, "aadhar_masked": "XXXX-XXXX-6651", "bank_account": "01120100077194", "ifsc": "BARB0INDORE"},
+                    {"member_id": "FARM-MP-42", "name": "Mukesh Sharma", "village": "Depalpur, Indore", "pool_qty_qtl": 200.0, "aadhar_masked": "XXXX-XXXX-1129", "bank_account": "38910284555", "ifsc": "SBIN0030018"}
+                ]
+            ),
+            models.CropLot(
+                id="FPO-LOT-402",
+                commodity="Gram",
+                variety="Rajasthan Desi Chana Katia",
+                mandi="Kota, Rajasthan",
+                fpo_name="Hadoti Kisan Vikas Agro Producer Co. Ltd.",
+                base_price_per_qtl=5420.0,
+                available_qty_qtl=420.0,
+                moisture_percent=9.8,
+                bagging_type="50KG_PP_BAG",
+                bag_cost_included=True,
+                apmc_cess_paid_at_source=True,
+                mform_document_hash="RSAMB/AP-2026/KOT-77123",
+                assaying={
+                    "foreign_matter_pct": 0.6,
+                    "broken_pct": 0.9,
+                    "protein_pct": 20.8,
+                    "grain_length_mm": 6.0,
+                    "lab_name": "Rajasthan Marketing Board Assaying Lab, Kota",
+                    "nabl_cert_no": "TC-5936",
+                    "grade": "Standard Grade Chana"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-RJ-21", "name": "Prahlad Bairwa", "village": "Itawa, Kota", "pool_qty_qtl": 250.0, "aadhar_masked": "XXXX-XXXX-4412", "bank_account": "02190100066192", "ifsc": "BARB0KOTAMA"},
+                    {"member_id": "FARM-RJ-22", "name": "Harish Meena", "village": "Chechat, Kota", "pool_qty_qtl": 170.0, "aadhar_masked": "XXXX-XXXX-9955", "bank_account": "32948192077", "ifsc": "SBIN0031264"}
+                ]
+            ),
+            models.CropLot(
+                id="FPO-LOT-202",
+                commodity="Rice",
+                variety="PR-126 Supreme Milling Paddy",
+                mandi="Khanna, Punjab",
+                fpo_name="Doaba Farmer Producer Company Ltd.",
+                base_price_per_qtl=3850.0,
+                available_qty_qtl=900.0,
+                moisture_percent=11.6,
+                bagging_type="50KG_JUTE_GUNNY",
+                bag_cost_included=True,
+                apmc_cess_paid_at_source=True,
+                mform_document_hash="PMB/M-FORM/2026/04/KHN-77112",
+                assaying={
+                    "foreign_matter_pct": 0.3,
+                    "broken_pct": 1.0,
+                    "protein_pct": 9.1,
+                    "grain_length_mm": 7.8,
+                    "lab_name": "Agmark Regional Quality Lab, Khanna",
+                    "nabl_cert_no": "TC-7414",
+                    "grade": "Grade-A Long Grain Rice"
+                },
+                farmer_members=[
+                    {"member_id": "FARM-PB-31", "name": "Baldev Singh", "village": "Samrala, Khanna", "pool_qty_qtl": 500.0, "aadhar_masked": "XXXX-XXXX-1199", "bank_account": "30489182999", "ifsc": "SBIN0000662"},
+                    {"member_id": "FARM-PB-32", "name": "Jaswant Kaur", "village": "Alour, Khanna", "pool_qty_qtl": 400.0, "aadhar_masked": "XXXX-XXXX-8833", "bank_account": "0243000100298888", "ifsc": "PUNB0024300"}
+                ]
             )
         ]
         db.add_all(initial_lots)

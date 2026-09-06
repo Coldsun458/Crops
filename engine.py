@@ -64,14 +64,21 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return round(r * c * 1.22, 1)
 
+_ROAD_CACHE: Dict[str, dict] = {}
+_WEATHER_CACHE: Dict[str, dict] = {}
+
 async def fetch_road_matrix(origin_lat: float, origin_lon: float, dest_lat: float, dest_lon: float) -> dict:
     """
     Fetches real highway network driving distance and duration via OpenStreetMap/OSRM.
     Falls back gracefully to calibrated Haversine distance on timeout or failure.
     """
+    key = f"{round(origin_lat, 2)},{round(origin_lon, 2)}->{round(dest_lat, 2)},{round(dest_lon, 2)}"
+    if key in _ROAD_CACHE:
+        return _ROAD_CACHE[key]
+
     url = f"https://router.project-osrm.org/route/v1/driving/{origin_lon},{origin_lat};{dest_lon},{dest_lat}?overview=false"
     try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=1.5) as client:
             res = await client.get(url)
             if res.status_code == 200:
                 data = res.json()
@@ -80,26 +87,34 @@ async def fetch_road_matrix(origin_lat: float, origin_lon: float, dest_lat: floa
                     distance_km = round(route["distance"] / 1000.0, 1)
                     # Commercial heavy truck pace adjustment (car duration * 1.32 factor)
                     transit_hours = round((route["duration"] / 3600.0) * 1.32, 1)
-                    return {
+                    result = {
                         "distance_km": distance_km,
                         "transit_hours": max(0.5, transit_hours),
                         "routing_source": "OSRM_ROAD_NETWORK"
                     }
+                    _ROAD_CACHE[key] = result
+                    return result
     except Exception:
         pass
 
     # Mathematical fallback
     fallback_km = haversine_distance(origin_lat, origin_lon, dest_lat, dest_lon)
-    return {
+    result = {
         "distance_km": fallback_km,
         "transit_hours": round(fallback_km / 45.0, 1),
         "routing_source": "HAVERSINE_ESTIMATION"
     }
+    _ROAD_CACHE[key] = result
+    return result
 
 async def fetch_live_weather(lat: float, lon: float) -> dict:
+    key = f"{round(lat, 2)},{round(lon, 2)}"
+    if key in _WEATHER_CACHE:
+        return _WEATHER_CACHE[key]
+
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,precipitation&hourly=precipitation_probability&forecast_days=1"
     try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=1.5) as client:
             res = await client.get(url)
             if res.status_code == 200:
                 data = res.json()
@@ -114,14 +129,19 @@ async def fetch_live_weather(lat: float, lon: float) -> dict:
                 elif rain_prob > 0.3:
                     condition = "Scattered Rain"
 
-                return {
+                result = {
                     "temp_c": current.get("temperature_2m", 28),
                     "condition": condition,
                     "rain_prob": round(rain_prob, 2)
                 }
+                _WEATHER_CACHE[key] = result
+                return result
     except Exception:
         pass
-    return {"temp_c": 29, "condition": "Clear", "rain_prob": 0.05}
+
+    fallback_result = {"temp_c": 29, "condition": "Clear", "rain_prob": 0.05}
+    _WEATHER_CACHE[key] = fallback_result
+    return fallback_result
 
 def calculate_commercial_invoice(
     base_price_per_qtl: float,
@@ -190,13 +210,21 @@ async def calculate_best_buy(
     current_listings: List[Dict]
 ) -> List[Dict]:
     buyer_coords = CITY_COORDINATES.get(buyer_city, CITY_COORDINATES["Jalandhar"])
-    analyzed_options = []
     benchmark_msp = MSP_BENCHMARKS.get(commodity, 2425.0)
 
-    for item in current_listings:
-        if item["commodity"].lower() != commodity.lower():
-            continue
+    # Filter matching listings (case insensitive)
+    matching_listings = [
+        item for item in current_listings
+        if item.get("commodity", "").lower() == commodity.lower()
+    ]
+    if not matching_listings:
+        # Fallback to all current listings if specific commodity has no lots
+        matching_listings = current_listings
 
+    if not matching_listings:
+        return []
+
+    async def analyze_listing(item: Dict) -> Dict:
         mandi_key = item["mandi"].split(",")[0].strip()
         hub = MANDI_REGISTRY.get(mandi_key, {
             "lat": buyer_coords["lat"] + 1.2,
@@ -286,7 +314,7 @@ async def calculate_best_buy(
         msp_diff_pct = round((msp_differential / benchmark_msp) * 100.0, 1) if benchmark_msp else 0.0
         msp_badge = f"+₹{msp_differential:0.2f} (+{msp_diff_pct}%)" if msp_differential >= 0 else f"-₹{abs(msp_differential):0.2f} ({msp_diff_pct}%)"
 
-        analyzed_options.append({
+        return {
             **item,
             "distance_km": distance_km,
             "transit_hours": transit_hours,
@@ -318,7 +346,10 @@ async def calculate_best_buy(
             "msp_badge": msp_badge,
             "is_above_msp": msp_differential >= 0,
             "recommendation_score": min(99.9, composite_prob)
-        })
+        }
 
+    # Execute all candidate mandis concurrently in parallel
+    results = await asyncio.gather(*[analyze_listing(item) for item in matching_listings])
+    analyzed_options = list(results)
     analyzed_options.sort(key=lambda x: x["recommendation_score"], reverse=True)
     return analyzed_options
