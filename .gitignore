@@ -24,3 +24,5 @@ backend/agri_exchange.db
 # OS artifacts
 .DS_Store
 Thumbs.db
+.vercel
+.env*
