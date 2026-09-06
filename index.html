@@ -22,11 +22,11 @@
           },
           colors: {
             surface: {
-              base: '#070a10',
-              subtle: '#0d131f',
-              card: '#111827',
-              border: '#1f293d',
-              accent: '#1e293b'
+              base: '#090d16',
+              subtle: '#0f1523',
+              card: '#131b2e',
+              border: '#1c263c',
+              accent: '#182238'
             }
           }
         }
@@ -35,29 +35,30 @@
   </script>
   <style>
     body {
-      background-color: #070a10;
-      color: #f3f4f6;
+      background-color: #090d16;
+      color: #f1f5f9;
       font-family: 'Inter', sans-serif;
       -webkit-tap-highlight-color: transparent;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.05) 0px, transparent 45%),
+        radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 45%),
+        radial-gradient(at 50% 100%, rgba(20, 184, 166, 0.03) 0px, transparent 50%);
+      background-attachment: fixed;
     }
     .custom-scrollbar::-webkit-scrollbar {
       height: 6px;
       width: 6px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: #0d131f;
+      background: #0f1523;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #1f293d;
+      background: #1c263c;
       border-radius: 9999px;
-    }
-    .grid-bg {
-      background-image: radial-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px);
-      background-size: 24px 24px;
     }
   </style>
 </head>
-<body class="grid-bg min-h-screen text-slate-100 selection:bg-emerald-500 selection:text-black">
+<body class="min-h-screen text-slate-100 selection:bg-cyan-500 selection:text-black">
   <div id="root"></div>
 
   <script type="text/babel">
@@ -1318,9 +1319,9 @@
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
               {/* BRAND LOGO */}
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-cyan-500 p-0.5 shadow-md shadow-emerald-500/20 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-400 to-indigo-500 p-0.5 shadow-md shadow-cyan-500/20 flex items-center justify-center">
                   <div className="w-full h-full bg-surface-base rounded-[10px] flex items-center justify-center">
-                    <svg className="w-4.5 h-4.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg className="w-4.5 h-4.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                     </svg>
                   </div>
@@ -1328,8 +1329,8 @@
                 <div>
                   <div className="text-base font-bold tracking-tight text-white flex items-center gap-2">
                     {t.appTitle}
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono font-medium border border-emerald-500/20 hidden sm:inline-flex items-center gap-1" title={t.sandboxDesc}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 font-mono font-medium border border-cyan-500/20 hidden sm:inline-flex items-center gap-1" title={t.sandboxDesc}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
                       Sandbox
                     </span>
                   </div>
@@ -1345,7 +1346,7 @@
                   onClick={() => setActiveTab("intelligence")}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                     activeTab === "intelligence"
-                      ? "bg-emerald-500 text-black font-semibold shadow-sm"
+                      ? "bg-cyan-500 text-slate-950 font-semibold shadow-sm shadow-cyan-500/20"
                       : "text-slate-300 hover:text-white hover:bg-surface-card"
                   }`}
                 >
@@ -1357,7 +1358,7 @@
                   onClick={() => setActiveTab("prices")}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                     activeTab === "prices"
-                      ? "bg-emerald-500 text-black font-semibold shadow-sm"
+                      ? "bg-cyan-500 text-slate-950 font-semibold shadow-sm shadow-cyan-500/20"
                       : "text-slate-300 hover:text-white hover:bg-surface-card"
                   }`}
                 >
@@ -1369,7 +1370,7 @@
                   onClick={() => setActiveTab("demand")}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                     activeTab === "demand"
-                      ? "bg-emerald-500 text-black font-semibold shadow-sm"
+                      ? "bg-cyan-500 text-slate-950 font-semibold shadow-sm shadow-cyan-500/20"
                       : "text-slate-300 hover:text-white hover:bg-surface-card"
                   }`}
                 >
@@ -1382,7 +1383,7 @@
                   onClick={() => setActiveTab("orders")}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                     activeTab === "orders"
-                      ? "bg-emerald-500 text-black font-semibold shadow-sm"
+                      ? "bg-cyan-500 text-slate-950 font-semibold shadow-sm shadow-cyan-500/20"
                       : "text-slate-300 hover:text-white hover:bg-surface-card"
                   }`}
                 >
@@ -1401,7 +1402,7 @@
                   <button
                     onClick={() => setLang("en")}
                     className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all ${
-                      lang === "en" ? "bg-emerald-500/20 text-emerald-400" : "text-slate-400 hover:text-white"
+                      lang === "en" ? "bg-cyan-500/20 text-cyan-300" : "text-slate-400 hover:text-white"
                     }`}
                   >
                     EN
@@ -1410,7 +1411,7 @@
                   <button
                     onClick={() => setLang("hi")}
                     className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all ${
-                      lang === "hi" ? "bg-emerald-500/20 text-emerald-400" : "text-slate-400 hover:text-white"
+                      lang === "hi" ? "bg-cyan-500/20 text-cyan-300" : "text-slate-400 hover:text-white"
                     }`}
                   >
                     हिंदी
@@ -1429,7 +1430,7 @@
                     {currentUser.role === "BUYER" ? "B" : "FPO"}
                   </div>
                   <div className="text-left hidden lg:block">
-                    <div className="text-xs font-semibold text-white group-hover:text-emerald-400 transition-colors line-clamp-1 max-w-[130px]">
+                    <div className="text-xs font-semibold text-white group-hover:text-cyan-400 transition-colors line-clamp-1 max-w-[130px]">
                       {currentUser.name}
                     </div>
                   </div>
@@ -1466,7 +1467,7 @@
                       className="px-3.5 py-2 bg-surface-card hover:bg-surface-accent border border-surface-border text-slate-300 hover:text-white text-xs font-medium rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
                       title="Sync Agmarknet APMC mandi prices"
                     >
-                      <svg className={`w-3.5 h-3.5 ${isSyncingPrices ? "animate-spin text-emerald-400" : "text-emerald-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-3.5 h-3.5 ${isSyncingPrices ? "animate-spin text-cyan-400" : "text-cyan-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                       <span>{isSyncingPrices ? t.syncingPrices : t.syncPricesBtn}</span>
@@ -1476,7 +1477,7 @@
                       type="button"
                       onClick={runProcurementScan}
                       disabled={isScanning}
-                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 font-mono"
+                      className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2 font-mono"
                     >
                       <svg className={`w-4 h-4 ${isScanning ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1500,7 +1501,7 @@
                             onClick={() => setSelectedCrop(crop.id)}
                             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 border ${
                               selectedCrop === crop.id
-                                ? "bg-emerald-500/20 border-emerald-500 text-emerald-300 font-semibold"
+                                ? "bg-cyan-500/15 border-cyan-500/60 text-cyan-300 font-semibold shadow-sm shadow-cyan-500/10"
                                 : "bg-surface-subtle border-surface-border text-slate-400 hover:text-white hover:border-slate-600"
                             }`}
                           >
@@ -1518,7 +1519,7 @@
                       <select
                         value={destinationCity}
                         onChange={(e) => setDestinationCity(e.target.value)}
-                        className="w-full bg-surface-subtle border border-surface-border text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500 font-medium"
+                        className="w-full bg-surface-subtle border border-surface-border text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500 font-medium"
                       >
                         {DESTINATION_HUBS.map(hub => (
                           <option key={hub.id} value={hub.id} className="bg-slate-900 text-white">
@@ -1532,7 +1533,7 @@
                     <div className="md:col-span-3">
                       <div className="text-[11px] font-mono font-medium text-slate-400 mb-2 flex items-center justify-between">
                         <span>{t.quantityRequired}</span>
-                        <span className="text-[10px] text-emerald-400 font-mono font-bold">{(requiredQty / 10).toFixed(1)} MT</span>
+                        <span className="text-[10px] text-cyan-400 font-mono font-bold">{(requiredQty / 10).toFixed(1)} MT</span>
                       </div>
                       <div className="relative">
                         <input
@@ -1542,7 +1543,7 @@
                           step="10"
                           value={requiredQty}
                           onChange={(e) => setRequiredQty(e.target.value)}
-                          className="w-full bg-surface-subtle border border-surface-border text-white text-xs rounded-xl px-3 py-2 pr-10 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                          className="w-full bg-surface-subtle border border-surface-border text-white text-xs rounded-xl px-3 py-2 pr-10 focus:outline-none focus:border-cyan-500 font-mono font-bold"
                         />
                         <span className="absolute right-3 top-2 text-xs text-slate-400 font-mono">Qtl</span>
                       </div>
@@ -1555,7 +1556,7 @@
                             onClick={() => setRequiredQty(q)}
                             className={`px-2 py-0.5 rounded-lg text-[10px] font-mono transition-all ${
                               Number(requiredQty) === q
-                                ? "bg-emerald-500/25 text-emerald-300 font-bold border border-emerald-500/40"
+                                ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40"
                                 : "bg-surface-subtle border border-surface-border text-slate-400 hover:text-white"
                             }`}
                           >
@@ -1570,16 +1571,16 @@
                 {/* SPOTLIGHT: THE SINGLE BEST ONE RECOMMENDED */}
                 {bestPick ? (
                   <div className="space-y-6">
-                    <div className="bg-surface-card border border-emerald-500/30 rounded-2xl p-5 sm:p-7 space-y-5 shadow-lg relative overflow-hidden">
+                    <div className="bg-surface-card border border-cyan-500/30 hover:border-cyan-500/40 rounded-2xl p-5 sm:p-7 space-y-5 shadow-xl relative overflow-hidden transition-all">
                     {/* TOP SUMMARY ROW */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-surface-border">
                       <div>
                         <div className="flex items-center gap-2 mb-1.5">
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold uppercase tracking-wider">
+                          <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono font-bold uppercase tracking-wider">
                             #1 RECOMMENDED HUB
                           </span>
                           <span className="text-xs text-slate-400 font-mono">
-                            AI Score: <b className="text-emerald-400 font-bold">{Math.round(bestPick.recommendation_score)}%</b>
+                            AI Score: <b className="text-cyan-400 font-bold">{Math.round(bestPick.recommendation_score)}%</b>
                           </span>
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -1590,18 +1591,19 @@
                           <span className="text-slate-600">•</span>
                           <span>FPO: <span className="text-slate-200 font-medium">{bestPick.fpo_name}</span></span>
                           <span className="text-slate-600">•</span>
-                          <span className="text-emerald-400">NABL Assayed Grade-A</span>
+                          <span className="text-cyan-400">NABL Assayed Grade-A</span>
                         </div>
                       </div>
 
                       <div className="text-left sm:text-right font-mono bg-surface-base/60 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-surface-border">
                         <div className="text-[11px] text-slate-400 uppercase tracking-wider">{t.landedCost}</div>
-                        <div className="text-2xl sm:text-3xl font-black text-emerald-400">
+                        <div className="text-2xl sm:text-3xl font-black text-white">
                           ₹{bestPick.net_landed_cost_per_qtl.toLocaleString()}
                           <span className="text-xs text-slate-400 font-normal">/qtl</span>
                         </div>
-                        <div className="text-[11px] text-emerald-300 mt-0.5 font-medium">
-                          ✓ Save ~₹{(requiredQty * 120).toLocaleString()} vs market average
+                        <div className="text-[11px] text-teal-300 mt-1 font-medium inline-flex items-center gap-1 bg-teal-500/10 px-2 py-0.5 rounded-md border border-teal-500/20">
+                          <span>✓</span>
+                          <span>Save ~₹{(requiredQty * 120).toLocaleString()} vs market average</span>
                         </div>
                       </div>
                     </div>
@@ -1639,7 +1641,7 @@
                           <span>🛡️</span>
                           <span>Assaying & Safety</span>
                         </div>
-                        <div className="text-emerald-400 font-bold text-sm mt-1">
+                        <div className="text-cyan-400 font-bold text-sm mt-1">
                           Grade-A FAQ • {bestPick.spoilage_risk_pct}% Spoilage
                         </div>
                         <div className="text-slate-400 text-[10px] mt-0.5">
@@ -1653,7 +1655,7 @@
                       <button
                         type="button"
                         onClick={() => setShowRouteDetails(prev => !prev)}
-                        className="text-xs font-mono text-slate-400 hover:text-emerald-400 flex items-center gap-1.5 transition-colors py-1 cursor-pointer"
+                        className="text-xs font-mono text-slate-400 hover:text-cyan-300 flex items-center gap-1.5 transition-colors py-1 cursor-pointer"
                       >
                         <span>{showRouteDetails ? "▲ Hide Route & Landed Cost Breakdown" : "▼ View Transit Route & Cost Composition Details"}</span>
                       </button>
@@ -1665,12 +1667,12 @@
                             <div className="text-[11px] font-mono text-slate-400 mb-2 font-semibold">Highway Corridor Telemetry</div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] font-mono">
                               <div className="p-2.5 bg-surface-card rounded-lg border border-surface-border">
-                                <span className="text-emerald-400 font-bold block">1. Origin Mandi</span>
+                                <span className="text-cyan-400 font-bold block">1. Origin Mandi</span>
                                 <span className="text-white font-semibold">{bestPick.mandi}</span>
                                 <span className="text-slate-400 block mt-0.5">{bestPick.origin_weather.temp_c}°C • {bestPick.origin_weather.condition}</span>
                               </div>
                               <div className="p-2.5 bg-surface-card rounded-lg border border-surface-border">
-                                <span className="text-cyan-400 font-bold block">2. Route Waypoint</span>
+                                <span className="text-teal-400 font-bold block">2. Route Waypoint</span>
                                 <span className="text-white font-semibold">{bestPick.waypoint_name}</span>
                                 <span className="text-slate-400 block mt-0.5">{bestPick.waypoint_weather.temp_c}°C • Rain: {bestPick.rain_risk_percent}%</span>
                               </div>
@@ -1686,7 +1688,7 @@
                           <div>
                             <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2 font-semibold">
                               <span>Commercial Landed Cost Breakdown (₹/qtl)</span>
-                              <span className="text-emerald-400 font-bold">Total: ₹{bestPick.net_landed_cost_per_qtl}/qtl</span>
+                              <span className="text-cyan-400 font-bold">Total: ₹{bestPick.net_landed_cost_per_qtl}/qtl</span>
                             </div>
 
                             {/* VISUAL STACKED BAR */}
@@ -1698,14 +1700,14 @@
                               return (
                                 <div className="space-y-1.5 mb-3">
                                   <div className="h-2.5 w-full rounded-full bg-surface-base flex overflow-hidden border border-surface-border">
-                                    <div style={{ width: `${mandiPct}%` }} className="bg-emerald-500" title={`Base Crop: ${mandiPct}%`}></div>
-                                    <div style={{ width: `${freightPct}%` }} className="bg-cyan-500" title={`Freight: ${freightPct}%`}></div>
+                                    <div style={{ width: `${mandiPct}%` }} className="bg-cyan-500" title={`Base Crop: ${mandiPct}%`}></div>
+                                    <div style={{ width: `${freightPct}%` }} className="bg-teal-400" title={`Freight: ${freightPct}%`}></div>
                                     <div style={{ width: `${cessPct}%` }} className="bg-indigo-500" title={`APMC Cess: ${cessPct}%`}></div>
                                     <div style={{ width: `${otherPct}%` }} className="bg-amber-500" title={`Bagging & QC: ${otherPct}%`}></div>
                                   </div>
                                   <div className="flex justify-between text-[10px] font-mono text-slate-400 flex-wrap gap-2">
-                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Base: {mandiPct}%</span>
-                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-500"></span> Freight: {freightPct}%</span>
+                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-500"></span> Base: {mandiPct}%</span>
+                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-teal-400"></span> Freight: {freightPct}%</span>
                                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> Cess: {cessPct}%</span>
                                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> QC/Bag: {otherPct}%</span>
                                   </div>
@@ -1743,7 +1745,7 @@
                           setSelectedLotForOrder(bestPick);
                           setIsBuyModalOpen(true);
                         }}
-                        className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer font-mono"
+                        className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer font-mono"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
                         <span>{t.executeOrder} (Lock 20% Escrow)</span>
@@ -1793,12 +1795,12 @@
                           </thead>
                           <tbody className="divide-y divide-surface-border/50 font-mono">
                             {allScannedListings.map((item, idx) => (
-                              <tr key={item.id} className={`hover:bg-surface-accent/40 transition-colors ${idx === 0 ? "bg-emerald-500/5 font-semibold" : ""}`}>
+                              <tr key={item.id} className={`hover:bg-surface-accent/40 transition-colors ${idx === 0 ? "bg-cyan-500/5 font-semibold" : ""}`}>
                                 <td className="py-3.5 px-3">
                                   {idx === 0 ? (
-                                    <span className="px-2 py-0.5 rounded bg-emerald-500 text-black font-bold text-[10px]">#1 BEST</span>
+                                    <span className="px-2 py-0.5 rounded bg-gradient-to-r from-cyan-500 to-teal-400 text-slate-950 font-bold text-[10px]">#1 BEST</span>
                                   ) : (
-                                    <span className="text-slate-400">#{idx + 1}</span>
+                                    <span className="text-slate-400 font-mono text-[10px] px-1.5 py-0.5 rounded bg-surface-subtle border border-surface-border">#{idx + 1}</span>
                                   )}
                                 </td>
                                 <td className="py-3.5 px-3">
@@ -1816,12 +1818,12 @@
                                   ₹{item.freight_per_qtl}
                                 </td>
                                 <td className="py-3.5 px-3">
-                                  <span className={item.rain_risk_percent > 30 ? "text-amber-400" : "text-emerald-400"}>
+                                  <span className={item.rain_risk_percent > 30 ? "text-amber-400" : "text-cyan-400"}>
                                     {item.origin_weather.temp_c}°C ({item.origin_weather.condition})
                                   </span>
                                 </td>
                                 <td className="py-3.5 px-3">
-                                  <span className="text-sm font-black text-emerald-400">
+                                  <span className="text-sm font-black text-white">
                                     ₹{item.net_landed_cost_per_qtl.toLocaleString()}
                                   </span>
                                   {idx > 0 && bestPick && (
@@ -1830,14 +1832,14 @@
                                     </span>
                                   )}
                                   {idx === 0 && (
-                                    <span className="text-[10px] text-emerald-300 font-mono block font-semibold">
+                                    <span className="text-[10px] text-cyan-400 font-mono block font-semibold">
                                       Lowest Landed
                                     </span>
                                   )}
                                 </td>
                                 <td className="py-3.5 px-3">
                                   <div className="w-16 bg-surface-base rounded-full h-2 overflow-hidden border border-surface-border">
-                                    <div className="bg-emerald-400 h-full rounded-full" style={{ width: `${item.recommendation_score}%` }}></div>
+                                    <div className="bg-cyan-400 h-full rounded-full" style={{ width: `${item.recommendation_score}%` }}></div>
                                   </div>
                                   <span className="text-[10px] text-slate-400 mt-0.5 block">{item.recommendation_score}</span>
                                 </td>
@@ -1847,7 +1849,7 @@
                                       setSelectedLotForOrder(item);
                                       setIsBuyModalOpen(true);
                                     }}
-                                    className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-[11px] rounded-lg transition-all"
+                                    className="px-2.5 py-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] rounded-lg shadow-sm shadow-cyan-500/15 transition-all"
                                   >
                                     {t.buy}
                                   </button>
@@ -1869,14 +1871,14 @@
                         {allScannedListings.map((item, idx) => (
                           <div key={item.id} className={`p-4 rounded-2xl border transition-all ${
                             idx === 0 
-                              ? "bg-emerald-950/20 border-emerald-500/40 shadow-lg shadow-emerald-950/30" 
+                              ? "bg-cyan-950/20 border-cyan-500/40 shadow-lg shadow-cyan-950/30" 
                               : "bg-surface-subtle/80 border-surface-border"
                           }`}>
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <div className="flex items-center gap-2">
                                   {idx === 0 ? (
-                                    <span className="px-2 py-0.5 rounded bg-emerald-500 text-black font-bold text-[10px] font-mono">#1 BEST</span>
+                                    <span className="px-2 py-0.5 rounded bg-gradient-to-r from-cyan-500 to-teal-400 text-slate-950 font-bold text-[10px] font-mono">#1 BEST</span>
                                   ) : (
                                     <span className="px-2 py-0.5 rounded bg-surface-card text-slate-400 font-mono text-[10px]">#{idx + 1}</span>
                                   )}
@@ -1886,7 +1888,7 @@
                               </div>
                               <div className="text-right font-mono">
                                 <div className="text-[10px] text-slate-400 uppercase">{t.netLandedQtl}</div>
-                                <div className="text-base font-extrabold text-emerald-400">₹{item.net_landed_cost_per_qtl.toLocaleString()}</div>
+                                <div className="text-base font-extrabold text-white">₹{item.net_landed_cost_per_qtl.toLocaleString()}</div>
                                 {idx > 0 && bestPick && (
                                   <span className="text-[10px] text-amber-400 font-mono block">
                                     +₹{(item.net_landed_cost_per_qtl - bestPick.net_landed_cost_per_qtl).toLocaleString()}
@@ -1912,11 +1914,11 @@
 
                             <div className="flex items-center justify-between mt-3 text-[11px] font-mono text-slate-400">
                               <div className="flex items-center gap-1.5">
-                                <span className={item.rain_risk_percent > 30 ? "text-amber-400" : "text-emerald-400"}>
+                                <span className={item.rain_risk_percent > 30 ? "text-amber-400" : "text-cyan-400"}>
                                   🌤 {item.origin_weather.temp_c}°C ({item.origin_weather.condition})
                                 </span>
                               </div>
-                              <div className="text-emerald-400 font-bold">
+                              <div className="text-cyan-400 font-bold">
                                 AI Score: {Math.round(item.recommendation_score)}%
                               </div>
                             </div>
@@ -1927,7 +1929,7 @@
                                   setSelectedLotForOrder(item);
                                   setIsBuyModalOpen(true);
                                 }}
-                                className="py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow-md transition-all text-center"
+                                className="py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow-md shadow-cyan-500/15 transition-all text-center"
                               >
                                 {t.buy}
                               </button>
@@ -1986,8 +1988,8 @@
                       onClick={() => setIsPlaceBidOpen(true)}
                       className={`px-4 py-2 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 ${
                         currentUser.role === "FPO"
-                          ? "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20"
-                          : "bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20"
+                          ? "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 text-slate-950 shadow-amber-500/20"
+                          : "bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 text-slate-950 shadow-cyan-500/20"
                       }`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
@@ -2019,10 +2021,10 @@
                           {fpoBids.length} Offers ({totalSupplyQtl.toLocaleString()} Qtl)
                         </span>
                         <span className="text-slate-600 hidden sm:inline">•</span>
-                        <span>Spread: <b className="text-emerald-400 font-bold">₹{spread}/qtl</b></span>
+                        <span>Spread: <b className="text-cyan-400 font-bold">₹{spread}/qtl</b></span>
                       </div>
                       <div className="text-[11px] text-slate-400">
-                        Best Bid: <span className="text-white font-bold">₹{highestBuyerBid}</span> | Best Ask: <span className="text-emerald-400 font-bold">₹{lowestFpoAsk}</span>
+                        Best Bid: <span className="text-white font-bold">₹{highestBuyerBid}</span> | Best Ask: <span className="text-cyan-400 font-bold">₹{lowestFpoAsk}</span>
                       </div>
                     </div>
                   );
@@ -2041,13 +2043,13 @@
                       onClick={() => setBidFilter(f.id)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 ${
                         bidFilter === f.id
-                          ? "bg-surface-card text-emerald-400 border border-emerald-500/30 shadow-sm"
+                          ? "bg-surface-card text-cyan-300 border border-cyan-500/30 shadow-sm"
                           : "text-slate-400 hover:text-slate-200"
                       }`}
                     >
                       <span>{f.label}</span>
                       <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                        bidFilter === f.id ? "bg-emerald-500/20 text-emerald-300" : "bg-surface-subtle text-slate-500"
+                        bidFilter === f.id ? "bg-cyan-500/15 text-cyan-300" : "bg-surface-subtle text-slate-500"
                       }`}>
                         {f.count}
                       </span>
@@ -2090,7 +2092,7 @@
                                 ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                                 : isCountered
                                 ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                             }`}>
                               {isAccepted ? t.statusAccepted : isFpoOffer ? t.statusOpenFpo : isCountered ? t.statusCountered : t.statusOpenAuction}
                             </span>
@@ -2110,7 +2112,7 @@
                           <div className="grid grid-cols-2 gap-2 bg-surface-base p-3 rounded-xl border border-surface-border text-xs font-mono">
                             <div>
                               <span className="text-[10px] text-slate-500 block">{t.targetPrice}</span>
-                              <span className="text-emerald-400 font-bold text-sm">₹{bid.target_bid_price_per_qtl}/qtl</span>
+                              <span className="text-cyan-400 font-bold text-sm">₹{bid.target_bid_price_per_qtl}/qtl</span>
                             </div>
                             <div>
                               <span className="text-[10px] text-slate-500 block">{t.deliveryCity}</span>
@@ -2142,7 +2144,7 @@
                             <>
                               <button
                                 onClick={() => handleAcceptBid(bid.bid_id)}
-                                className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/15"
+                                className="flex-1 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold rounded-xl transition-all shadow-md shadow-cyan-500/15"
                               >
                                 {t.acceptBid}
                               </button>
@@ -2161,7 +2163,7 @@
                           {canAcceptAsBuyer && (
                             <button
                               onClick={() => isCountered ? handleAcceptCounter(bid.bid_id) : handleAcceptBid(bid.bid_id)}
-                              className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/15"
+                              className="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold rounded-xl transition-all shadow-md shadow-cyan-500/15"
                             >
                               {isCountered ? t.counterAccepted : t.acceptBid}
                             </button>
@@ -2189,13 +2191,13 @@
                       <h2 className="text-2xl font-bold text-white tracking-tight">
                         {t.pricesTitle}
                       </h2>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
                         {t.feedActive}
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 mt-1">
-                      {t.pricesSubtitle} {priceSyncData?.last_synced && <span className="text-emerald-400 font-mono">• {t.lastSynced}: {priceSyncData.last_synced}</span>}
+                      {t.pricesSubtitle} {priceSyncData?.last_synced && <span className="text-cyan-400 font-mono">• {t.lastSynced}: {priceSyncData.last_synced}</span>}
                     </p>
                   </div>
 
@@ -2205,7 +2207,7 @@
                       type="button"
                       onClick={syncAgmarknetPrices}
                       disabled={isSyncingPrices}
-                      className="px-3.5 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 hover:border-emerald-400 text-emerald-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2 disabled:opacity-50 shadow-lg shadow-emerald-500/10"
+                      className="px-3.5 py-2 bg-surface-card hover:bg-surface-accent border border-surface-border text-cyan-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2 disabled:opacity-50 shadow-sm"
                       title="Fetch live APMC mandi spot prices from Agmarknet open data feed"
                     >
                       <svg className={`w-3.5 h-3.5 ${isSyncingPrices ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2220,7 +2222,7 @@
                         placeholder={t.searchPlaceholder}
                         value={priceSearch}
                         onChange={(e) => setPriceSearch(e.target.value)}
-                        className="bg-surface-subtle border border-surface-border text-xs rounded-xl pl-9 pr-3 py-2 text-white focus:outline-none focus:border-emerald-500 w-48 sm:w-56 font-sans"
+                        className="bg-surface-subtle border border-surface-border text-xs rounded-xl pl-9 pr-3 py-2 text-white focus:outline-none focus:border-cyan-500 w-48 sm:w-56 font-sans"
                       />
                       <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     </div>
@@ -2228,7 +2230,7 @@
                     <select
                       value={priceCropFilter}
                       onChange={(e) => setPriceCropFilter(e.target.value)}
-                      className="bg-surface-subtle border border-surface-border text-xs rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-sans"
+                      className="bg-surface-subtle border border-surface-border text-xs rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-sans"
                     >
                       <option value="ALL">{t.allCommodities}</option>
                       {CROP_CATALOG.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
@@ -2243,7 +2245,7 @@
                     onClick={() => setPriceCropFilter("ALL")}
                     className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
                       priceCropFilter === "ALL"
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold"
+                        ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 font-bold"
                         : "bg-surface-card border border-surface-border text-slate-400 hover:text-white"
                     }`}
                   >
@@ -2256,7 +2258,7 @@
                       onClick={() => setPriceCropFilter(c.id)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
                         priceCropFilter === c.id
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold"
+                          ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 font-bold"
                           : "bg-surface-card border border-surface-border text-slate-400 hover:text-white"
                       }`}
                     >
@@ -2288,12 +2290,12 @@
                           <tr key={lot.id} className="hover:bg-surface-accent/30 transition-colors">
                             <td className="py-3 px-4">
                               <div className="font-bold text-white font-sans text-sm">{lot.mandi}</div>
-                              <div className="text-[10px] text-emerald-400 font-mono">M-Form Verified</div>
+                              <div className="text-[10px] text-cyan-400 font-mono">M-Form Verified</div>
                             </td>
                             <td className="py-3 px-4 font-sans font-medium text-slate-200">
                               {lot.commodity} • <span className="text-slate-400 text-xs">{lot.variety}</span>
                             </td>
-                            <td className="py-3 px-4 font-bold text-emerald-400 text-sm">
+                            <td className="py-3 px-4 font-bold text-white text-sm">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span>₹{lot.base_price_per_qtl.toLocaleString()}</span>
                                 <span className="text-xs text-slate-500 font-normal">/qtl</span>
@@ -2301,7 +2303,7 @@
                                   <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
                                     priceSyncData.changes[lot.id].includes('-')
                                       ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                      : "bg-teal-500/20 text-teal-300 border border-teal-500/30"
                                   }`}>
                                     {priceSyncData.changes[lot.id]}
                                   </span>
@@ -2313,7 +2315,7 @@
                             </td>
                             <td className="py-3 px-4">
                               <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                                lot.moisture_percent <= 12 ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+                                lot.moisture_percent <= 12 ? "bg-teal-500/20 text-teal-300 border border-teal-500/30" : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                               }`}>
                                 {lot.moisture_percent}%
                               </span>
@@ -2327,7 +2329,7 @@
                                   setSelectedLotForOrder(lot);
                                   setIsBuyModalOpen(true);
                                 }}
-                                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-lg transition-all"
+                                className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-lg shadow-sm shadow-cyan-500/15 transition-all"
                               >
                                 {t.buy}
                               </button>
@@ -2352,14 +2354,14 @@
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-bold text-white text-sm">{lot.mandi}</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20">M-Form</span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 font-mono border border-cyan-500/20">M-Form</span>
                             </div>
                             <div className="text-xs text-slate-300 mt-0.5">
                               {lot.commodity} • <span className="text-slate-400">{lot.variety}</span>
                             </div>
                           </div>
                           <div className="text-right font-mono">
-                            <div className="text-base font-extrabold text-emerald-400">
+                            <div className="text-base font-extrabold text-white">
                               ₹{lot.base_price_per_qtl.toLocaleString()}
                               <span className="text-[10px] text-slate-500 font-normal">/qtl</span>
                             </div>
@@ -2367,7 +2369,7 @@
                               <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded inline-block mt-0.5 ${
                                 priceSyncData.changes[lot.id].includes('-')
                                   ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                  : "bg-teal-500/20 text-teal-300 border border-teal-500/30"
                               }`}>
                                 {priceSyncData.changes[lot.id]}
                               </span>
@@ -2382,7 +2384,7 @@
                           </div>
                           <div>
                             <span className="text-slate-500 text-[10px] block">{t.moisture}</span>
-                            <span className={lot.moisture_percent <= 12 ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                            <span className={lot.moisture_percent <= 12 ? "text-teal-300 font-bold" : "text-amber-400 font-bold"}>
                               {lot.moisture_percent}%
                             </span>
                           </div>
@@ -2398,7 +2400,7 @@
                               setSelectedLotForOrder(lot);
                               setIsBuyModalOpen(true);
                             }}
-                            className="py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow-md transition-all text-center"
+                            className="py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow-md shadow-cyan-500/15 transition-all text-center"
                           >
                             {t.buy}
                           </button>
@@ -2463,7 +2465,7 @@
                         setLiveOrders(prev => [demoOrder, ...prev]);
                         showToast(`⚡ Demo Escrow Order ${demoOrder.order_id} generated! 20% advance locked.`);
                       }}
-                      className="px-3.5 py-2 bg-surface-card hover:bg-surface-accent border border-surface-border text-emerald-300 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center gap-2 font-mono shadow"
+                      className="px-3.5 py-2 bg-surface-card hover:bg-surface-accent border border-surface-border text-cyan-300 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center gap-2 font-mono shadow"
                     >
                       <span>⚡</span>
                       <span>{t.demoOrderBtn}</span>
@@ -2483,12 +2485,12 @@
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-bold text-white font-mono">{ord.order_id}</span>
-                              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/15 text-cyan-300 font-bold border border-cyan-500/30">
                                 {ord.status}
                               </span>
                             </div>
                             <div className="text-xs text-slate-300 font-semibold mt-1">
-                              🌾 <span className="text-white">{ord.commodity}</span> ({ord.variety}) • Mandi: <span className="text-emerald-400">{ord.mandi}</span>
+                              🌾 <span className="text-white">{ord.commodity}</span> ({ord.variety}) • Mandi: <span className="text-cyan-400">{ord.mandi}</span>
                             </div>
                             <div className="text-xs text-slate-400 font-mono mt-0.5">
                               GST E-Way Bill: <span className="text-slate-200">{ord.eway_bill_no}</span> • Quantity: <span className="text-white font-bold">{ord.quantity_qtl} Qtl</span> • FPO: <span className="text-slate-300">{ord.fpo_name}</span>
@@ -2497,7 +2499,7 @@
 
                           <div className="text-right font-mono">
                             <div className="text-xs text-slate-400">{t.totalAmount}</div>
-                            <div className="text-lg font-extrabold text-emerald-400">
+                            <div className="text-lg font-extrabold text-cyan-400">
                               ₹{ord.total_invoice_amount.toLocaleString()}
                             </div>
                           </div>
@@ -2508,11 +2510,11 @@
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono text-xs">
                             {/* Step 1 */}
                             <div className="flex items-center gap-3">
-                              <span className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold text-[11px] shrink-0">1</span>
+                              <span className="w-6 h-6 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center font-bold text-[11px] shrink-0">1</span>
                               <div>
                                 <div className="text-[10px] text-slate-400 uppercase tracking-wider">{t.advance20} (20%)</div>
                                 <div className="text-white font-bold">₹{ord.escrow_stages?.advance_20_pct?.toLocaleString()}</div>
-                                <div className="text-[10px] text-emerald-400">✓ Locked in Escrow</div>
+                                <div className="text-[10px] text-cyan-400">✓ Locked in Escrow</div>
                               </div>
                             </div>
                             <div className="hidden sm:block flex-1 h-px bg-surface-border mx-2"></div>
@@ -2520,14 +2522,14 @@
                             <div className="flex items-center gap-3">
                               <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0 ${
                                 ord.status === "DISPATCHED" || ord.status === "DELIVERED"
-                                  ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400"
+                                  ? "bg-indigo-500/20 border border-indigo-500/40 text-indigo-400"
                                   : "bg-surface-subtle border border-surface-border text-slate-500"
                               }`}>2</span>
                               <div>
                                 <div className="text-[10px] text-slate-400 uppercase tracking-wider">{t.dispatch70} (70%)</div>
                                 <div className="text-white font-bold">₹{ord.escrow_stages?.dispatch_70_pct?.toLocaleString()}</div>
                                 <div className="text-[10px] text-slate-400">
-                                  {ord.status === "DISPATCHED" || ord.status === "DELIVERED" ? <span className="text-emerald-400">✓ Released on Dispatch</span> : "Pending Dispatch"}
+                                  {ord.status === "DISPATCHED" || ord.status === "DELIVERED" ? <span className="text-indigo-400">✓ Released on Dispatch</span> : "Pending Dispatch"}
                                 </div>
                               </div>
                             </div>
@@ -2536,14 +2538,14 @@
                             <div className="flex items-center gap-3">
                               <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0 ${
                                 ord.status === "DELIVERED"
-                                  ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400"
+                                  ? "bg-teal-500/20 border border-teal-500/40 text-teal-400"
                                   : "bg-surface-subtle border border-surface-border text-slate-500"
                               }`}>3</span>
                               <div>
                                 <div className="text-[10px] text-slate-400 uppercase tracking-wider">{t.final10} (10%)</div>
                                 <div className="text-white font-bold">₹{ord.escrow_stages?.final_10_pct?.toLocaleString()}</div>
                                 <div className="text-[10px] text-slate-400">
-                                  {ord.status === "DELIVERED" ? <span className="text-emerald-400">✓ Settlement Complete</span> : "Pending Mill Delivery"}
+                                  {ord.status === "DELIVERED" ? <span className="text-teal-400">✓ Settlement Complete</span> : "Pending Mill Delivery"}
                                 </div>
                               </div>
                             </div>
@@ -2557,7 +2559,7 @@
                             onClick={() => setSelectedOrderForInvoice(ord)}
                             className="px-3.5 py-2 bg-surface-base hover:bg-surface-accent border border-surface-border hover:border-slate-500 text-slate-200 text-xs font-bold rounded-xl transition-all font-mono flex items-center gap-1.5"
                           >
-                            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                             <span>{t.viewInvoice}</span>
                           </button>
 
@@ -2573,7 +2575,7 @@
                           {ord.status === "DISPATCHED" && (
                             <button
                               onClick={() => handleDeliverOrder(ord.order_id)}
-                              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow transition-all font-mono"
+                              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-all font-mono"
                             >
                               🏁 {t.deliverOrder} (Release Final 10% Escrow)
                             </button>
@@ -2656,7 +2658,7 @@
                 }} className="space-y-4 text-xs font-mono">
                   <div>
                     <label className="block text-slate-400 mb-1">{t.selectCrop}</label>
-                    <select name="commodity" className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500">
+                    <select name="commodity" className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500">
                       {CROP_CATALOG.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
                     </select>
                   </div>
@@ -2664,17 +2666,17 @@
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-slate-400 mb-1">{t.targetQty}</label>
-                      <input type="number" name="target_qty_qtl" defaultValue="300" min="10" required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-emerald-500" />
+                      <input type="number" name="target_qty_qtl" defaultValue="300" min="10" required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-cyan-500" />
                     </div>
                     <div>
                       <label className="block text-slate-400 mb-1">{currentUser.role === "FPO" ? "Asking Price (₹/qtl)" : "Target Price (₹/qtl)"}</label>
-                      <input type="number" name="target_bid_price_per_qtl" defaultValue="2550" min="100" required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-emerald-500" />
+                      <input type="number" name="target_bid_price_per_qtl" defaultValue="2550" min="100" required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-cyan-500" />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-slate-400 mb-1">{t.deliveryCity}</label>
-                    <select name="delivery_city" className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500">
+                    <select name="delivery_city" className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500">
                       {DESTINATION_HUBS.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
                     </select>
                   </div>
@@ -2683,7 +2685,7 @@
                     <button type="button" onClick={() => setIsPlaceBidOpen(false)} className="flex-1 py-3 bg-surface-subtle hover:bg-surface-accent border border-surface-border text-white rounded-xl text-xs font-semibold">
                       {t.cancel}
                     </button>
-                    <button type="submit" className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl shadow-lg shadow-emerald-500/20 text-xs">
+                    <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-bold rounded-xl shadow-lg shadow-cyan-500/20 text-xs">
                       {t.confirm}
                     </button>
                   </div>
@@ -2704,7 +2706,7 @@
                 <div className="p-3 bg-surface-base rounded-xl text-xs font-mono space-y-1">
                   <div>Buyer: <b className="text-white">{selectedBidForCounter.buyer_name}</b></div>
                   <div>Commodity: <b className="text-white">{selectedBidForCounter.commodity} ({selectedBidForCounter.target_qty_qtl} Qtl)</b></div>
-                  <div>Buyer's Bid: <b className="text-emerald-400">₹{selectedBidForCounter.target_bid_price_per_qtl}/qtl</b></div>
+                  <div>Buyer's Bid: <b className="text-cyan-400">₹{selectedBidForCounter.target_bid_price_per_qtl}/qtl</b></div>
                 </div>
 
                 <form onSubmit={async (e) => {
@@ -2792,7 +2794,7 @@
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Base Price:</span>
-                    <b className="text-emerald-400">₹{selectedLotForOrder.base_price_per_qtl}/qtl</b>
+                    <b className="text-cyan-400">₹{selectedLotForOrder.base_price_per_qtl}/qtl</b>
                   </div>
                   {selectedLotForOrder.freight_per_qtl && (
                     <div className="flex justify-between">
@@ -2893,20 +2895,20 @@
                 }} className="space-y-3 text-xs font-mono">
                   <div>
                     <label className="block text-slate-400 mb-1">{t.quantityRequired}</label>
-                    <input type="number" name="quantity_qtl" defaultValue={requiredQty} min="10" required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white font-bold text-sm focus:outline-none focus:border-emerald-500" />
+                    <input type="number" name="quantity_qtl" defaultValue={requiredQty} min="10" required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white font-bold text-sm focus:outline-none focus:border-cyan-500" />
                   </div>
 
                   <div>
                     <label className="block text-slate-400 mb-1">{t.deliveryAddress}</label>
-                    <input type="text" name="delivery_address" defaultValue={currentUser.address || "Focal Point Phase-V, Jalandhar"} required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500" />
+                    <input type="text" name="delivery_address" defaultValue={currentUser.address || "Focal Point Phase-V, Jalandhar"} required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500" />
                   </div>
 
                   <div>
                     <label className="block text-slate-400 mb-1">{t.gstinNumber}</label>
-                    <input type="text" name="gstin" defaultValue={currentUser.gstin || "03AAACA4582K1ZD"} required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500" />
+                    <input type="text" name="gstin" defaultValue={currentUser.gstin || "03AAACA4582K1ZD"} required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500" />
                   </div>
 
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[11px] text-emerald-300">
+                  <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-[11px] text-cyan-300">
                     🔒 <b>Escrow Guarantee</b>: 20% advance locked immediately. 70% released upon dispatch weighment slip. 10% released upon arrival quality verification.
                   </div>
 
@@ -2914,7 +2916,7 @@
                     <button type="button" onClick={() => setIsBuyModalOpen(false)} className="flex-1 py-3 bg-surface-subtle hover:bg-surface-accent border border-surface-border text-white rounded-xl text-xs font-semibold">
                       {t.cancel}
                     </button>
-                    <button type="submit" className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl shadow-lg shadow-emerald-500/20 text-xs">
+                    <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-bold rounded-xl shadow-lg shadow-cyan-500/20 text-xs">
                       Confirm & Lock Escrow
                     </button>
                   </div>
@@ -2930,7 +2932,7 @@
                 {/* HEADER / BARCODE */}
                 <div className="flex items-start justify-between border-b border-slate-700 pb-4">
                   <div>
-                    <div className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">
+                    <div className="text-[10px] uppercase tracking-widest text-cyan-400 font-bold">
                       FORM GST INV-01 • E-WAY BILL CONSIGNMENT NOTE
                     </div>
                     <h3 className="text-lg font-extrabold text-white mt-1">
@@ -2957,7 +2959,7 @@
                 <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div>
                     <div className="text-[9px] uppercase tracking-wider text-slate-400">Unique GST E-Way Bill Number</div>
-                    <div className="text-base font-extrabold text-emerald-400 tracking-wider mt-0.5">
+                    <div className="text-base font-extrabold text-cyan-400 tracking-wider mt-0.5">
                       {selectedOrderForInvoice.eway_bill_no || "2418 9034 5122"}
                     </div>
                     <div className="text-[10px] text-slate-500">Valid for Heavy Multi-Axle Inter-State Agri Transit</div>
@@ -3054,7 +3056,7 @@
                               </tr>
                               <tr className="border-t-2 border-slate-600 font-bold text-white text-sm">
                                 <td colSpan="4" className="py-2.5 text-right">Grand Total Landed Invoice (₹):</td>
-                                <td className="py-2.5 text-right text-emerald-400">
+                                <td className="py-2.5 text-right text-cyan-400">
                                   ₹{(selectedOrderForInvoice.total_invoice_amount || subtotal).toLocaleString()}
                                 </td>
                               </tr>
@@ -3067,30 +3069,30 @@
                 </div>
 
                 {/* TRIPARTITE ESCROW STATUS CERTIFICATE */}
-                <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl space-y-2">
+                <div className="p-3.5 bg-cyan-950/30 border border-cyan-500/30 rounded-xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1.5">
+                    <span className="text-[10px] text-cyan-400 font-bold flex items-center gap-1.5">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                       RBI REGULATED 3-STAGE ESCROW GUARANTEE
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
                       {selectedOrderForInvoice.status}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-[10px]">
                     <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
                       <span className="text-slate-400 block">Stage 1: 20% Advance</span>
-                      <span className="text-emerald-400 font-bold">✓ Locked in Trust Escrow</span>
+                      <span className="text-cyan-400 font-bold">✓ Locked in Trust Escrow</span>
                     </div>
                     <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
                       <span className="text-slate-400 block">Stage 2: 70% Dispatch</span>
-                      <span className={selectedOrderForInvoice.status === 'DISPATCHED' || selectedOrderForInvoice.status === 'DELIVERED' ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                      <span className={selectedOrderForInvoice.status === 'DISPATCHED' || selectedOrderForInvoice.status === 'DELIVERED' ? 'text-indigo-400 font-bold' : 'text-slate-500'}>
                         {selectedOrderForInvoice.status === 'DISPATCHED' || selectedOrderForInvoice.status === 'DELIVERED' ? '✓ Released at Weighment' : 'Pending Loading'}
                       </span>
                     </div>
                     <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
                       <span className="text-slate-400 block">Stage 3: 10% Final</span>
-                      <span className={selectedOrderForInvoice.status === 'DELIVERED' ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                      <span className={selectedOrderForInvoice.status === 'DELIVERED' ? 'text-teal-400 font-bold' : 'text-slate-500'}>
                         {selectedOrderForInvoice.status === 'DELIVERED' ? '✓ Settled at Mill' : 'Held at Destination'}
                       </span>
                     </div>
@@ -3102,7 +3104,7 @@
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
+                    className="flex-1 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                     Print / Download PDF
@@ -3186,7 +3188,7 @@
                 <div>
                   <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold mb-2.5 flex items-center justify-between">
                     <span>{t.quickProfiles}</span>
-                    <span className="text-emerald-400 font-normal">1-Click Instant Switch</span>
+                    <span className="text-cyan-400 font-normal">1-Click Instant Switch</span>
                   </div>
                   <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
                     {(loginModalTab === "BUYER" ? DEMO_PROFILES.buyers : DEMO_PROFILES.fpos).map(profile => {
@@ -3207,11 +3209,11 @@
                         >
                           <div className="space-y-0.5 min-w-0 pr-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors truncate">
+                              <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
                                 {profile.name}
                               </span>
                               {isActive && (
-                                <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/40">
+                                <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-mono font-bold bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/40">
                                   ACTIVE
                                 </span>
                               )}
@@ -3224,7 +3226,7 @@
                             </div>
                           </div>
                           <div className={`shrink-0 text-xs px-2.5 py-1 rounded-lg font-semibold ${
-                            isActive ? "bg-emerald-500 text-black font-bold" : "bg-surface-card border border-surface-border text-slate-300 group-hover:border-slate-500"
+                            isActive ? "bg-cyan-500 text-slate-950 font-bold" : "bg-surface-card border border-surface-border text-slate-300 group-hover:border-slate-500"
                           }`}>
                             {isActive ? "Selected" : "Switch"}
                           </div>
@@ -3268,7 +3270,7 @@
                           name="custom_email"
                           required
                           placeholder={loginModalTab === "BUYER" ? "miller@foodcorp.com" : "manager@kisan-fpo.org"}
-                          className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-sans text-xs"
+                          className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-sans text-xs"
                         />
                       </div>
                       <div>
@@ -3277,7 +3279,7 @@
                           type="text"
                           name="custom_name"
                           placeholder={loginModalTab === "BUYER" ? "Apex Flour Mills Ltd." : "Samriddhi Kisan FPO"}
-                          className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-sans text-xs"
+                          className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-sans text-xs"
                         />
                       </div>
                     </div>
@@ -3288,7 +3290,7 @@
                           type="text"
                           name="custom_city"
                           placeholder="e.g. Indore / Karnal / Jalandhar"
-                          className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-sans text-xs"
+                          className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-sans text-xs"
                         />
                       </div>
                       <div>
@@ -3297,7 +3299,7 @@
                           type="text"
                           name="custom_phone"
                           placeholder="+91 98XXX XXXXX"
-                          className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-sans text-xs"
+                          className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-sans text-xs"
                         />
                       </div>
                     </div>
@@ -3327,7 +3329,7 @@
               onClick={() => setActiveTab("intelligence")}
               className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all ${
                 activeTab === "intelligence"
-                  ? "text-emerald-400 font-bold bg-emerald-500/10"
+                  ? "text-cyan-400 font-bold bg-cyan-500/10"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -3339,7 +3341,7 @@
               onClick={() => setActiveTab("prices")}
               className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all ${
                 activeTab === "prices"
-                  ? "text-emerald-400 font-bold bg-emerald-500/10"
+                  ? "text-cyan-400 font-bold bg-cyan-500/10"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -3351,7 +3353,7 @@
               onClick={() => setActiveTab("demand")}
               className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all relative ${
                 activeTab === "demand"
-                  ? "text-emerald-400 font-bold bg-emerald-500/10"
+                  ? "text-cyan-400 font-bold bg-cyan-500/10"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -3366,14 +3368,14 @@
               onClick={() => setActiveTab("orders")}
               className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all relative ${
                 activeTab === "orders"
-                  ? "text-emerald-400 font-bold bg-emerald-500/10"
+                  ? "text-cyan-400 font-bold bg-cyan-500/10"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
               <div className="relative">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 {liveOrders.length > 0 && (
-                  <span className="absolute -top-1 -right-2 px-1.5 py-0.2 bg-emerald-500 text-black font-bold rounded-full text-[9px] leading-tight">
+                  <span className="absolute -top-1 -right-2 px-1.5 py-0.2 bg-cyan-500 text-slate-950 font-bold rounded-full text-[9px] leading-tight">
                     {liveOrders.length}
                   </span>
                 )}
@@ -3390,7 +3392,7 @@
                 className={`p-4 rounded-2xl shadow-xl border text-xs font-mono font-semibold flex items-center gap-2 pointer-events-auto transition-all transform translate-y-0 ${
                   toast.type === "error"
                     ? "bg-red-950/90 text-red-200 border-red-800"
-                    : "bg-surface-card/95 text-emerald-300 border-emerald-500/40"
+                    : "bg-surface-card/95 text-cyan-300 border-cyan-500/40"
                 }`}
               >
                 <span>{toast.type === "error" ? "❌" : "✓"}</span>
