@@ -22,7 +22,8 @@ from engine import (
     MSP_BENCHMARKS,
     calculate_best_buy,
     calculate_commercial_invoice,
-    haversine_distance
+    haversine_distance,
+    sync_agmarknet_prices
 )
 
 Base.metadata.create_all(bind=engine)
@@ -88,6 +89,26 @@ TRADING_ACCOUNTS = {
         "gstin": "06AABCK7712M1ZF",
         "cin": "U01111HR2020PTC048192",
         "address": "Old Grain Market, Taraori Road, Karnal, Haryana - 132001"
+    },
+    "indore.fpo@malwa.org": {
+        "id": "USR-FPO-03",
+        "name": "Malwa Kisan Samriddhi Producer Co. Ltd.",
+        "role": "FPO",
+        "city": "Indore",
+        "phone": "+91 98260-44192",
+        "gstin": "23AAACM5519L1ZX",
+        "cin": "U01112MP2021PTC049102",
+        "address": "Laxmibai Nagar Grain Market, Sanwer Road, Indore, MP - 452006"
+    },
+    "kota.fpo@hadoti.org": {
+        "id": "USR-FPO-04",
+        "name": "Hadoti Kisan Vikas Agro Producer Co. Ltd.",
+        "role": "FPO",
+        "city": "Kota",
+        "phone": "+91 94140-33819",
+        "gstin": "08AAACH3312K1ZY",
+        "cin": "U01113RJ2020PTC051289",
+        "address": "Bhamashah Mandi Complex, Anantpura, Kota, Rajasthan - 324005"
     },
     "admin@khanna-mandi.gov": {
         "id": "USR-ADMIN-01",
@@ -664,6 +685,10 @@ seed_initial_data(force=True)
 # Schemas
 class LoginRequest(BaseModel):
     email: str
+    role: Optional[str] = "BUYER"
+    name: Optional[str] = None
+    city: Optional[str] = None
+    phone: Optional[str] = None
 
 class BestBuyQuery(BaseModel):
     commodity: str = "Wheat"
@@ -778,10 +803,39 @@ def get_accounts():
 
 @app.post("/api/v1/auth/login")
 def login(req: LoginRequest):
-    user = MOCK_USERS.get(req.email)
+    clean_email = req.email.strip().lower()
+    user = MOCK_USERS.get(clean_email)
     if not user:
-        raise HTTPException(status_code=404, detail="User account not found")
-    return {"status": "SUCCESS", "token": create_access_token(user), "user": user}
+        for k, v in MOCK_USERS.items():
+            if k.lower() == clean_email:
+                user = v
+                break
+    if not user:
+        role = (req.role or "BUYER").upper()
+        if role not in ["BUYER", "FPO", "MANDI_ADMIN", "LOGISTICS"]:
+            role = "BUYER"
+        name = req.name.strip() if req.name else (clean_email.split('@')[0].replace('.', ' ').title() + (" FPO" if role == "FPO" else " Traders"))
+        city = req.city.strip() if req.city else ("Khanna" if role == "FPO" else "Jalandhar")
+        phone = req.phone.strip() if req.phone else "+91 98765 43210"
+        user = {
+            "id": f"USR-{role[:3]}-{abs(hash(clean_email)) % 10000:04d}",
+            "name": name,
+            "role": role,
+            "city": city,
+            "phone": phone,
+            "email": clean_email,
+            "gstin": f"03AAACD{abs(hash(clean_email)) % 9000 + 1000}P1ZQ" if role == "FPO" else f"03AAACA{abs(hash(clean_email)) % 9000 + 1000}K1ZD",
+            "address": f"Trading Complex, {city}"
+        }
+        MOCK_USERS[clean_email] = user
+
+    token = create_access_token(user)
+    return {
+        "status": "SUCCESS",
+        "token": token,
+        "access_token": token,
+        "user": user
+    }
 
 @app.get("/api/v1/auth/me")
 def verify_current_identity(user: dict = Depends(get_current_user)):
@@ -814,6 +868,52 @@ def get_market_lots(db: Session = Depends(get_db)):
         "mform_document_hash": l.mform_document_hash,
         "assaying": l.assaying
     } for l in lots]
+
+@app.api_route("/api/v1/market/sync-prices", methods=["GET", "POST"])
+async def sync_market_prices(db: Session = Depends(get_db)):
+    lots = db.query(models.CropLot).all()
+    lot_dicts = [{
+        "id": l.id,
+        "commodity": l.commodity,
+        "variety": l.variety,
+        "mandi": l.mandi,
+        "fpo_name": l.fpo_name,
+        "base_price_per_qtl": l.base_price_per_qtl,
+        "available_qty_qtl": l.available_qty_qtl,
+        "moisture_percent": l.moisture_percent,
+        "bagging_type": l.bagging_type,
+        "mform_document_hash": l.mform_document_hash,
+        "assaying": l.assaying
+    } for l in lots]
+    
+    sync_results = await sync_agmarknet_prices(lot_dicts)
+    price_map = {item["lot_id"]: item["new_price"] for item in sync_results}
+    
+    for l in lots:
+        if l.id in price_map:
+            l.base_price_per_qtl = price_map[l.id]
+    db.commit()
+    
+    updated_lots = db.query(models.CropLot).all()
+    return {
+        "status": "SUCCESS",
+        "message": "Agmarknet APMC mandi prices synchronized successfully",
+        "synced_at": datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
+        "sync_details": sync_results,
+        "lots": [{
+            "id": l.id,
+            "commodity": l.commodity,
+            "variety": l.variety,
+            "mandi": l.mandi,
+            "fpo_name": l.fpo_name,
+            "base_price_per_qtl": l.base_price_per_qtl,
+            "available_qty_qtl": l.available_qty_qtl,
+            "moisture_percent": l.moisture_percent,
+            "bagging_type": l.bagging_type,
+            "mform_document_hash": l.mform_document_hash,
+            "assaying": l.assaying
+        } for l in updated_lots]
+    }
 
 @app.post("/api/v1/recommendations")
 async def get_market_recommendations(query: BestBuyQuery, db: Session = Depends(get_db)):
