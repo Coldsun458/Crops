@@ -1548,8 +1548,9 @@
                 </div>
 
                 {/* SPOTLIGHT: THE SINGLE BEST ONE RECOMMENDED */}
-                {bestPick && (
-                  <div className="bg-surface-card border border-emerald-500/30 rounded-2xl p-5 sm:p-7 space-y-5 shadow-lg relative overflow-hidden">
+                {bestPick ? (
+                  <div className="space-y-6">
+                    <div className="bg-surface-card border border-emerald-500/30 rounded-2xl p-5 sm:p-7 space-y-5 shadow-lg relative overflow-hidden">
                     {/* TOP SUMMARY ROW */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-surface-border">
                       <div>
@@ -1709,7 +1710,6 @@
                       </button>
                     </div>
                   </div>
-                )}
 
                     {/* COMPARISON MATRIX OF ALL SURVEYED MANDIS */}
                     <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
