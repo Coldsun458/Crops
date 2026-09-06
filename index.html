@@ -174,7 +174,16 @@
         counterPrice: "Your Counter Price (₹/qtl)",
         deliveryAddress: "Delivery Address",
         gstinNumber: "GSTIN Number",
-        savingsNotice: "Estimated savings vs market average"
+        savingsNotice: "Estimated savings vs market average",
+        sandboxTitle: "SIMULATION SANDBOX ACTIVE",
+        sandboxDesc: "Simulated Commercial Settlements • Real Agmarknet Prices & Open-Meteo Weather • Zero Real-Money Risk",
+        transitCorridor: "Highway Transit Route Corridor",
+        corridorDesc: "Continuous highway route & temperature telemetry",
+        costStackTitle: "Commercial Landed Cost Composition",
+        marketDepthTitle: "Double-Auction Order Depth & Liquidity",
+        spreadIndicator: "Current Bid-Ask Spread",
+        viewInvoice: "View GST Commercial Bill",
+        demoOrderBtn: "Generate Test Escrow Order"
       },
       hi: {
         appTitle: "एग्रीट्रेड इंटेलिजेंस",
@@ -248,54 +257,63 @@
         stockAvailable: "उपलब्ध स्टॉक",
         moisture: "नमी %",
         fpoProducer: "उत्पादक एफपीओ",
-        ordersTitle: "निष्पादित अनुबंध एवं एस्क्रो भुगतान",
-        ordersSubtitle: "3-चरणीय एस्क्रो सुरक्षा: 20% अग्रिम लॉक, 70% ट्रक लोडिंग पर, 10% डिलीवरी पर विमोचन",
-        totalAmount: "कुल इनवॉइस",
+        ordersTitle: "निष्पादित अनुबंध एवं एस्क्रो निपटान",
+        ordersSubtitle: "मल्टी-स्टेज माइलस्टोन एस्क्रो: 20% अग्रिम लॉक, 70% ट्रक लोडिंग पर, 10% डिलीवरी पर",
+        totalAmount: "कुल इनवॉयस राशि",
         advance20: "20% अग्रिम",
-        dispatch70: "70% प्रेषण",
-        final10: "10% अंतिम भुगतान",
-        dispatchOrder: "प्रेषित मार्क करें",
+        dispatch70: "70% लोडिंग",
+        final10: "10% निपटान",
+        dispatchOrder: "डिस्पैच मार्क करें",
         deliverOrder: "डिलीवरी पूर्ण करें",
-        switchAccount: "खाता बदलें",
+        switchAccount: "अकाउंट बदलें",
         buyerAccount: "थोक खरीदार",
         fpoAccount: "किसान उत्पादक संगठन (FPO)",
         syncPricesBtn: "एगमार्कनेट लाइव भाव सिंक करें",
-        syncingPrices: "एगमार्कनेट सिंक हो रहा है...",
-        feedActive: "एगमार्कनेट APMC फीड: लाइव",
+        syncingPrices: "एगमार्कनेट फीड सिंक हो रही है...",
+        feedActive: "एगमार्कनेट एपीएमसी फीड: लाइव",
         lastSynced: "अंतिम सिंक",
-        loginModalTitle: "व्यापारिक पहचान एवं पोर्टल प्रवेश",
-        loginModalSubtitle: "थोक खरीदार/मिलर डेस्क और किसान उत्पादक संगठन (FPO) डेस्क के बीच स्विच करें",
+        loginModalTitle: "वाणिज्यिक पहचान एवं ट्रेडिंग डेस्क पोर्टल",
+        loginModalSubtitle: "थोक खरीदार मिलर डेस्क एवं किसान उत्पादक संगठन (FPO) डेस्क के बीच स्विच करें",
         tabBuyer: "थोक खरीदार पोर्टल",
-        tabFpo: "एफपीओ / उत्पादक पोर्टल",
+        tabFpo: "FPO / उत्पादक पोर्टल",
         quickProfiles: "सत्यापित त्वरित प्रोफाइल (1-क्लिक)",
-        customLogin: "कस्टम व्यापारिक / एफपीओ लॉगिन",
-        orgName: "संस्था / कंपनी का नाम",
+        customLogin: "कस्टम कॉर्पोरेट / संस्था साइन-इन",
+        orgName: "कंपनी / संस्था का नाम",
         emailAddr: "कॉर्पोरेट ईमेल पता",
         cityHub: "मंडी / शहर केंद्र",
         phoneNum: "अधिकृत मोबाइल नंबर",
-        signInAsBuyer: "थोक खरीदार के रूप में प्रवेश करें",
-        signInAsFpo: "उत्पादक एफपीओ के रूप में प्रवेश करें",
-        fpoActiveBanner: "एफपीओ के रूप में सक्रिय: खरीदारों की लाइव मांग देखें और सीधे अनुबंध स्वीकारें या बिक्री बोली लगाएं।",
-        buyerActiveBanner: "थोक खरीदार के रूप में सक्रिय: अपनी खरीद मांग पोस्ट करें या सीधे सत्यापित एफपीओ से खरीदें।",
+        signInAsBuyer: "थोक खरीदार के रूप में साइन इन करें",
+        signInAsFpo: "FPO के रूप में साइन इन करें",
+        fpoActiveBanner: "FPO के रूप में सक्रिय: नीचे थोक खरीदार मांगें देखें। आप तुरंत खरीदार के भाव पर सौदा स्वीकार सकते हैं, काउंटर ऑफर दे सकते हैं, या अपनी आपूर्ति बोली लगा सकते हैं।",
+        buyerActiveBanner: "थोक खरीदार के रूप में सक्रिय: मांग नीलामी पोस्ट करें या 3-स्टेज एस्क्रो के साथ सीधे खरीद करें।",
         targetQty: "मात्रा (क्विंटल)",
-        modalPlaceBidTitle: "नई मार्केट बोली / मांग लगाएं",
-        modalCounterTitle: "एफपीओ काउंटर-ऑफर दर्ज करें",
-        modalOrderTitle: "व्यापारिक अनुबंध एवं एस्क्रो लॉक",
-        confirm: "पुष्टि करें एवं जमा करें",
+        modalPlaceBidTitle: "नई मार्केट बोली / मांग पोस्ट करें",
+        modalCounterTitle: "FPO काउंटर-ऑफर प्रस्तुत करें",
+        modalOrderTitle: "वाणिज्यिक ऑर्डर पक्का करें एवं एस्क्रो लॉक करें",
+        confirm: "पुष्टि करें एवं भेजें",
         cancel: "रद्द करें",
         counterPrice: "आपका काउंटर भाव (₹/क्विंटल)",
         deliveryAddress: "डिलीवरी का पता",
         gstinNumber: "GSTIN नंबर",
-        savingsNotice: "औसत बाजार भाव की तुलना में बचत"
+        savingsNotice: "औसत बाजार भाव की तुलना में बचत",
+        sandboxTitle: "सिमुलेशन सैंडबॉक्स सक्रिय",
+        sandboxDesc: "सिमुलेटेड वाणिज्यिक निपटान • वास्तविक एगमार्कनेट भाव एवं मौसम • शून्य वित्तीय जोखिम",
+        transitCorridor: "हाईवे परिवहन रूट कॉरिडोर",
+        corridorDesc: "सड़क मार्ग एवं तापमान विश्लेषण",
+        costStackTitle: "कुल लैंडेड खरीद लागत विभाजन",
+        marketDepthTitle: "लाइव बाजार गहराई एवं तरलता",
+        spreadIndicator: "बोली-मांग अंतर (स्प्रेड)",
+        viewInvoice: "जीएसटी वाणिज्यिक बिल देखें",
+        demoOrderBtn: "सैंपल एस्क्रो ऑर्डर बनाएं"
       }
     };
 
     const CROP_CATALOG = [
-      { id: "Wheat", icon: "🌾", msp: 2425.0, varieties: "Sharbati / Lokwan" },
-      { id: "Rice", icon: "🍚", msp: 2320.0, varieties: "1121 Steam Basmati" },
-      { id: "Mustard", icon: "🌻", msp: 5650.0, varieties: "42% Oil Grade" },
-      { id: "Maize", icon: "🌽", msp: 2225.0, varieties: "Yellow Feed Grade" },
-      { id: "Gram", icon: "🫘", msp: 5440.0, varieties: "Desi Chana Bold" }
+      { id: "Wheat", icon: "🌾", msp: 2425.0, spot: 2580, change: "+1.8%", varieties: "Sharbati / Certified Mill" },
+      { id: "Rice", icon: "🍚", msp: 2320.0, spot: 3850, change: "+0.9%", varieties: "1121 Steam Basmati" },
+      { id: "Mustard", icon: "🌻", msp: 5650.0, spot: 5720, change: "-0.4%", varieties: "42% Oil Grade" },
+      { id: "Maize", icon: "🌽", msp: 2225.0, spot: 2240, change: "+2.1%", varieties: "Yellow Feed Grade" },
+      { id: "Gram", icon: "🫘", msp: 5440.0, spot: 5450, change: "+0.3%", varieties: "Desi Chana Bold" }
     ];
 
     const DESTINATION_HUBS = [
@@ -681,6 +699,65 @@
       }
     ];
 
+    const DEFAULT_ORDERS = [
+      {
+        order_id: "SAUDA-2026-KHN-0101",
+        eway_bill_no: "2418 9034 5122",
+        lot_id: "FPO-LOT-101",
+        buyer_id: "USR-BUYER-01",
+        buyer_name: "Aryan Foods & Flour Mills Pvt. Ltd.",
+        buyer_phone: "+91 98140-72641",
+        delivery_address: "Plot No. 48-52, Focal Point Phase-V, GT Road Bypass, Jalandhar, Punjab - 144050",
+        gstin: "03AAACA4582K1ZD",
+        fpo_name: "Doaba Farmer Producer Company Ltd.",
+        fpo_gstin: "03AABCD1234F1Z5",
+        mandi: "Khanna, Punjab",
+        commodity: "Wheat",
+        variety: "PBW-725 Sharbati (PAU Certified Seed)",
+        payment_method: "ESCROW_RTGS",
+        quantity_qtl: 100.0,
+        base_price_per_qtl: 2580.0,
+        bagging_type: "50KG_JUTE_GUNNY",
+        freight_per_qtl: 42.0,
+        total_invoice_amount: 271540.0,
+        status: "ADVANCE_ESCROW_LOCKED",
+        escrow_stages: {
+          advance_20_pct: 54308.0,
+          dispatch_70_pct: 190078.0,
+          final_10_pct: 27154.0
+        },
+        created_at: new Date(Date.now() - 3600000 * 4).toISOString()
+      },
+      {
+        order_id: "SAUDA-2026-IND-0102",
+        eway_bill_no: "2418 9034 5123",
+        lot_id: "FPO-LOT-102",
+        buyer_id: "USR-BUYER-01",
+        buyer_name: "Aryan Foods & Flour Mills Pvt. Ltd.",
+        buyer_phone: "+91 98140-72641",
+        delivery_address: "Plot No. 48-52, Focal Point Phase-V, GT Road Bypass, Jalandhar, Punjab - 144050",
+        gstin: "03AAACA4582K1ZD",
+        fpo_name: "Malwa Kisan Samriddhi Producer Co. Ltd.",
+        fpo_gstin: "23AAACM5519L1ZX",
+        mandi: "Indore, Madhya Pradesh",
+        commodity: "Wheat",
+        variety: "Malwa Lokwan Premium Gold",
+        payment_method: "ESCROW_UPI",
+        quantity_qtl: 150.0,
+        base_price_per_qtl: 2420.0,
+        bagging_type: "50KG_PP_BAG",
+        freight_per_qtl: 88.0,
+        total_invoice_amount: 388500.0,
+        status: "DISPATCHED",
+        escrow_stages: {
+          advance_20_pct: 77700.0,
+          dispatch_70_pct: 271950.0,
+          final_10_pct: 38850.0
+        },
+        created_at: new Date(Date.now() - 3600000 * 12).toISOString()
+      }
+    ];
+
     const MANDI_GEO = {
       "Khanna": { lat: 30.7071, lon: 76.2197, state: "Punjab", temp: 28, weather: "Clear" },
       "Karnal": { lat: 29.6857, lon: 76.9905, state: "Haryana", temp: 29, weather: "Clear" },
@@ -796,7 +873,7 @@
       // Data States initialized with instant authentic mandi dataset
       const [marketLots, setMarketLots] = useState(DEFAULT_MARKET_LOTS);
       const [liveBids, setLiveBids] = useState(DEFAULT_BIDS);
-      const [liveOrders, setLiveOrders] = useState([]);
+      const [liveOrders, setLiveOrders] = useState(DEFAULT_ORDERS);
 
       // Procurement Intelligence State initialized instantly (0ms delay)
       const [selectedCrop, setSelectedCrop] = useState("Wheat");
@@ -816,7 +893,8 @@
       const [isSyncingPrices, setIsSyncingPrices] = useState(false);
       const [priceSyncData, setPriceSyncData] = useState(null);
 
-      // Filter States
+      // Filter & Modal States
+      const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState(null);
       const [bidFilter, setBidFilter] = useState("ALL");
       const [priceSearch, setPriceSearch] = useState("");
       const [priceCropFilter, setPriceCropFilter] = useState("ALL");
@@ -974,7 +1052,9 @@
           const res = await fetch("/api/v1/orders/all");
           if (res.ok) {
             const data = await res.json();
-            setLiveOrders(data);
+            if (data && data.length > 0) {
+              setLiveOrders(data);
+            }
           }
         } catch (e) {
           console.error("Failed to fetch orders:", e);
@@ -1396,6 +1476,32 @@
             </div>
           </header>
 
+          {/* SIMULATION SANDBOX / FINANCIAL INTEGRITY STATUS BANNER */}
+          <aside aria-label="Simulation Sandbox Status" className="bg-gradient-to-r from-emerald-950/70 via-slate-900 to-indigo-950/70 border-b border-emerald-500/25 px-3 sm:px-6 py-2 shadow-inner">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="flex h-2.5 w-2.5 relative flex-shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-extrabold border border-emerald-500/30 text-[10px] uppercase tracking-wider">
+                  {t.sandboxTitle}
+                </span>
+                <span className="text-slate-300 text-[11px] leading-tight">
+                  {t.sandboxDesc}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] text-slate-400 self-end sm:self-auto flex-shrink-0">
+                <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  20-70-10 Escrow Protection
+                </span>
+                <span className="text-slate-600 hidden md:inline">•</span>
+                <span className="text-cyan-300 hidden md:inline">Open-Meteo & OSRM Verified</span>
+              </div>
+            </div>
+          </aside>
+
           {/* MAIN BODY VIEW */}
           <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 md:pb-8 space-y-6 sm:space-y-8">
             
@@ -1454,19 +1560,22 @@
                       <label className="block text-xs font-semibold text-slate-300 mb-2 font-mono">
                         {t.selectCrop}
                       </label>
-                      <div className="grid grid-cols-5 gap-1 sm:gap-2">
+                      <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
                         {CROP_CATALOG.map(crop => (
                           <button
                             key={crop.id}
+                            type="button"
                             onClick={() => setSelectedCrop(crop.id)}
-                            className={`px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-semibold transition-all flex flex-col items-center gap-0.5 sm:gap-1 border ${
+                            className={`px-1 py-1.5 sm:py-2 rounded-xl text-[10px] transition-all flex flex-col items-center justify-center gap-0.5 border ${
                               selectedCrop === crop.id
-                                ? "bg-emerald-500/20 border-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                                ? "bg-emerald-500/20 border-emerald-500 text-white shadow-md shadow-emerald-500/15 font-bold"
                                 : "bg-surface-subtle/80 border-surface-border text-slate-400 hover:text-white hover:border-slate-600"
                             }`}
                           >
                             <span className="text-sm sm:text-base">{crop.icon}</span>
-                            <span className="truncate max-w-[55px] sm:max-w-none">{crop.id}</span>
+                            <span className="truncate font-semibold max-w-[50px] sm:max-w-none">{crop.id}</span>
+                            <span className="text-[9px] font-mono text-emerald-400 font-bold hidden sm:inline">₹{crop.spot}</span>
+                            <span className={`text-[8px] font-mono px-1 rounded ${crop.change.startsWith('+') ? 'text-emerald-300 bg-emerald-950/60' : 'text-rose-300 bg-rose-950/60'}`}>{crop.change}</span>
                           </button>
                         ))}
                       </div>
@@ -1678,6 +1787,120 @@
                                 {bestPick.spoilage_alert}
                               </div>
                             </div>
+                          </div>
+
+                          {/* HIGHWAY TRANSIT CORRIDOR PIPELINE */}
+                          <div className="p-4 bg-surface-card rounded-2xl border border-surface-border space-y-3">
+                            <div className="flex items-center justify-between text-xs font-mono">
+                              <span className="text-slate-300 font-bold flex items-center gap-1.5">
+                                <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+                                {t.transitCorridor}
+                              </span>
+                              <span className="text-emerald-400 font-bold">
+                                {bestPick.transit_distance_km} km • ~{bestPick.transit_time_hours} hrs
+                              </span>
+                            </div>
+
+                            <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-[10px] font-mono">
+                              {/* NODE 1: ORIGIN MANDI */}
+                              <div className="flex-1 bg-surface-base p-2.5 rounded-xl border border-emerald-500/30 text-left">
+                                <div className="text-emerald-400 font-bold flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                  Origin APMC
+                                </div>
+                                <div className="text-white font-semibold truncate mt-0.5">{bestPick.mandi}</div>
+                                <div className="text-slate-400 text-[9px] mt-0.5">{bestPick.origin_weather.temp_c}°C • {bestPick.origin_weather.condition}</div>
+                              </div>
+
+                              {/* CONNECTOR 1 */}
+                              <div className="flex sm:flex-col items-center justify-center px-1 text-slate-500">
+                                <span className="text-[9px] text-cyan-400 font-bold hidden sm:inline">Route</span>
+                                <svg className="w-4 h-4 text-cyan-400 rotate-90 sm:rotate-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                              </div>
+
+                              {/* NODE 2: WAYPOINT */}
+                              <div className="flex-1 bg-surface-base p-2.5 rounded-xl border border-surface-border text-left">
+                                <div className="text-cyan-400 font-bold flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                                  Corridor Waypoint
+                                </div>
+                                <div className="text-white font-semibold truncate mt-0.5">{bestPick.waypoint_name}</div>
+                                <div className="text-slate-400 text-[9px] mt-0.5">{bestPick.waypoint_weather.temp_c}°C • Rain: {bestPick.rain_risk_percent}%</div>
+                              </div>
+
+                              {/* CONNECTOR 2 */}
+                              <div className="flex sm:flex-col items-center justify-center px-1 text-slate-500">
+                                <span className="text-[9px] text-emerald-400 font-bold hidden sm:inline">Freight</span>
+                                <svg className="w-4 h-4 text-emerald-400 rotate-90 sm:rotate-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                              </div>
+
+                              {/* NODE 3: DESTINATION MILL */}
+                              <div className="flex-1 bg-surface-base p-2.5 rounded-xl border border-indigo-500/30 text-left">
+                                <div className="text-indigo-400 font-bold flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+                                  Receiving Hub
+                                </div>
+                                <div className="text-white font-semibold truncate mt-0.5">{destinationCity} Mill</div>
+                                <div className="text-slate-400 text-[9px] mt-0.5">Weighbridge Tare & QC Assaying</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* LANDED COST BREAKDOWN STACK */}
+                          <div className="p-4 bg-surface-card rounded-2xl border border-surface-border space-y-3">
+                            <div className="flex items-center justify-between text-xs font-mono">
+                              <span className="text-slate-300 font-bold flex items-center gap-1.5">
+                                <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                {t.costStackTitle}
+                              </span>
+                              <span className="text-emerald-400 font-bold text-sm">
+                                Net: ₹{bestPick.landed_cost_per_qtl.toLocaleString()}/qtl
+                              </span>
+                            </div>
+
+                            {/* STACKED BAR */}
+                            {(() => {
+                              const base = bestPick.base_price_per_qtl || 2500;
+                              const freight = bestPick.freight_per_qtl || 50;
+                              const apmc = Math.round(base * 0.02);
+                              const bagging = 45;
+                              const insurance = Math.round(base * 0.0015);
+                              const total = base + freight + apmc + bagging + insurance;
+                              const basePct = Math.round((base / total) * 100);
+                              const freightPct = Math.round((freight / total) * 100);
+                              const apmcPct = Math.max(2, Math.round((apmc / total) * 100));
+                              const otherPct = 100 - basePct - freightPct - apmcPct;
+
+                              return (
+                                <div className="space-y-2 font-mono text-[10px]">
+                                  <div className="h-3 w-full rounded-full bg-surface-base flex overflow-hidden border border-surface-border">
+                                    <div style={{ width: `${basePct}%` }} className="bg-emerald-500 transition-all" title={`Mandi Base: ₹${base}/qtl (${basePct}%)`}></div>
+                                    <div style={{ width: `${freightPct}%` }} className="bg-cyan-500 transition-all" title={`Freight: ₹${freight}/qtl (${freightPct}%)`}></div>
+                                    <div style={{ width: `${apmcPct}%` }} className="bg-indigo-500 transition-all" title={`APMC Mandi Cess: ₹${apmc}/qtl (${apmcPct}%)`}></div>
+                                    <div style={{ width: `${otherPct}%` }} className="bg-amber-500 transition-all" title={`Bagging & Insurance: ₹${bagging + insurance}/qtl (${otherPct}%)`}></div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+                                      <span className="text-slate-400">Base: <b className="text-white">₹{base}</b> ({basePct}%)</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 flex-shrink-0"></span>
+                                      <span className="text-slate-400">Freight: <b className="text-white">₹{freight}</b> ({freightPct}%)</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 flex-shrink-0"></span>
+                                      <span className="text-slate-400">APMC Cess: <b className="text-white">₹{apmc}</b> ({apmcPct}%)</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0"></span>
+                                      <span className="text-slate-400">Pack/Ins: <b className="text-white">₹{bagging + insurance}</b> ({otherPct}%)</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           {/* ESCROW MILESTONES PREVIEW */}
@@ -1950,6 +2173,71 @@
                     </button>
                   </div>
                 </div>
+
+                {/* DOUBLE-AUCTION ORDER DEPTH & LIQUIDITY BOARD */}
+                {(() => {
+                  const buyerBids = liveBids.filter(b => b.status === "OPEN_AUCTION" || b.status === "COUNTER_OFFERED");
+                  const fpoBids = liveBids.filter(b => b.status === "OPEN_FPO_OFFER");
+                  const totalDemandQtl = buyerBids.reduce((acc, b) => acc + (b.target_qty_qtl || 0), 0);
+                  const totalSupplyQtl = fpoBids.reduce((acc, b) => acc + (b.target_qty_qtl || 0), 0);
+                  const highestBuyerBid = buyerBids.length > 0 ? Math.max(...buyerBids.map(b => b.target_bid_price_per_qtl || 0)) : 2580;
+                  const lowestFpoAsk = fpoBids.length > 0 ? Math.min(...fpoBids.map(b => b.target_bid_price_per_qtl || 0)) : 2620;
+                  const spread = Math.abs(lowestFpoAsk - highestBuyerBid);
+                  const totalVol = (totalDemandQtl + totalSupplyQtl) || 1;
+                  const demandPct = Math.round((totalDemandQtl / totalVol) * 100);
+                  const supplyPct = 100 - demandPct;
+
+                  return (
+                    <div className="bg-gradient-to-r from-surface-card via-surface-card to-surface-subtle border border-surface-border rounded-2xl p-4 sm:p-5 space-y-3 shadow-lg">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs font-mono font-bold text-white">
+                          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                          <span>{t.marketDepthTitle}</span>
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-300">
+                          {t.spreadIndicator}: <span className="text-emerald-400 font-bold">₹{spread}/qtl</span> spread
+                        </div>
+                      </div>
+
+                      {/* LIQUIDITY GAUGE BAR */}
+                      <div className="space-y-1.5 font-mono text-[11px]">
+                        <div className="flex justify-between text-slate-400 text-[10px] sm:text-[11px]">
+                          <span className="flex items-center gap-1.5 text-indigo-300 font-semibold truncate">
+                            <span className="w-2 h-2 rounded bg-indigo-500 flex-shrink-0"></span>
+                            Buyer Demand: {totalDemandQtl.toLocaleString()} Qtl ({demandPct}%)
+                          </span>
+                          <span className="flex items-center gap-1.5 text-amber-300 font-semibold truncate">
+                            <span className="w-2 h-2 rounded bg-amber-500 flex-shrink-0"></span>
+                            FPO Supply: {totalSupplyQtl.toLocaleString()} Qtl ({supplyPct}%)
+                          </span>
+                        </div>
+                        <div className="h-2.5 w-full rounded-full bg-surface-base flex overflow-hidden border border-surface-border">
+                          <div style={{ width: `${demandPct}%` }} className="bg-indigo-500 transition-all"></div>
+                          <div style={{ width: `${supplyPct}%` }} className="bg-amber-500 transition-all"></div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
+                        <div className="p-2 bg-surface-base rounded-xl border border-surface-border">
+                          <span className="text-slate-500 block text-[9px]">ACTIVE BUYER ORDERS</span>
+                          <span className="text-indigo-400 font-bold text-sm">{buyerBids.length} Demands</span>
+                        </div>
+                        <div className="p-2 bg-surface-base rounded-xl border border-surface-border">
+                          <span className="text-slate-500 block text-[9px]">ACTIVE FPO OFFERS</span>
+                          <span className="text-amber-400 font-bold text-sm">{fpoBids.length} Offers</span>
+                        </div>
+                        <div className="p-2 bg-surface-base rounded-xl border border-surface-border">
+                          <span className="text-slate-500 block text-[9px]">BEST BUYER BID</span>
+                          <span className="text-white font-bold text-sm">₹{highestBuyerBid}/qtl</span>
+                        </div>
+                        <div className="p-2 bg-surface-base rounded-xl border border-surface-border">
+                          <span className="text-slate-500 block text-[9px]">BEST FPO ASK</span>
+                          <span className="text-emerald-400 font-bold text-sm">₹{lowestFpoAsk}/qtl</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* FILTER TABS */}
                 <div className="flex items-center gap-2 border-b border-surface-border pb-3">
@@ -2306,13 +2594,56 @@
             {/* 4. ORDERS & ESCROW SETTLEMENTS */}
             {activeTab === "orders" && (
               <div className="space-y-6 animate-fadeIn">
-                <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">
-                    {t.ordersTitle}
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {t.ordersSubtitle}
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">
+                      {t.ordersTitle}
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {t.ordersSubtitle}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const demoOrder = {
+                          order_id: "SAUDA-2026-DEMO-" + Math.floor(1000 + Math.random() * 9000),
+                          eway_bill_no: "2418 " + Math.floor(1000 + Math.random() * 9000) + " " + Math.floor(1000 + Math.random() * 9000),
+                          lot_id: "FPO-LOT-101",
+                          buyer_id: currentUser.id || "USR-BUYER-01",
+                          buyer_name: currentUser.name || "Aryan Foods & Flour Mills Pvt. Ltd.",
+                          buyer_phone: currentUser.phone || "+91 98140-72641",
+                          delivery_address: "Plot No. 48-52, Focal Point Phase-V, GT Road Bypass, Jalandhar, Punjab - 144050",
+                          gstin: currentUser.gstin || "03AAACA4582K1ZD",
+                          fpo_name: "Doaba Farmer Producer Company Ltd.",
+                          fpo_gstin: "03AABCD1234F1Z5",
+                          mandi: "Khanna, Punjab",
+                          commodity: "Wheat",
+                          variety: "PBW-725 Sharbati (PAU Certified Seed)",
+                          payment_method: "ESCROW_RTGS",
+                          quantity_qtl: 200.0,
+                          base_price_per_qtl: 2580.0,
+                          bagging_type: "50KG_JUTE_GUNNY",
+                          freight_per_qtl: 42.0,
+                          total_invoice_amount: 543080.0,
+                          status: "ADVANCE_ESCROW_LOCKED",
+                          escrow_stages: {
+                            advance_20_pct: 108616.0,
+                            dispatch_70_pct: 380156.0,
+                            final_10_pct: 54308.0
+                          },
+                          created_at: new Date().toISOString()
+                        };
+                        setLiveOrders(prev => [demoOrder, ...prev]);
+                        showToast(`⚡ Demo Escrow Order ${demoOrder.order_id} generated! 20% advance locked.`);
+                      }}
+                      className="px-3.5 py-2 bg-surface-card hover:bg-surface-accent border border-surface-border text-emerald-300 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center gap-2 font-mono shadow"
+                    >
+                      <span>⚡</span>
+                      <span>{t.demoOrderBtn}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -2381,8 +2712,17 @@
                           </div>
                         </div>
 
-                        {/* STAGE TRANSITION ACTIONS */}
-                        <div className="flex items-center gap-3 pt-2">
+                        {/* STAGE TRANSITION & INVOICE ACTIONS */}
+                        <div className="flex flex-wrap items-center gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrderForInvoice(ord)}
+                            className="px-3.5 py-2 bg-surface-base hover:bg-surface-accent border border-surface-border hover:border-slate-500 text-slate-200 text-xs font-bold rounded-xl transition-all font-mono flex items-center gap-1.5"
+                          >
+                            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <span>{t.viewInvoice}</span>
+                          </button>
+
                           {ord.status === "ADVANCE_ESCROW_LOCKED" && (
                             <button
                               onClick={() => handleDispatchOrder(ord.order_id)}
@@ -2741,6 +3081,202 @@
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* 5. DIGITAL GST COMMERCIAL INVOICE & E-WAY BILL MODAL */}
+          {selectedOrderForInvoice && (
+            <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+              <div className="bg-slate-900 border border-slate-700 text-slate-100 rounded-2xl max-w-2xl w-full p-5 sm:p-7 space-y-5 shadow-2xl my-auto max-h-[92vh] overflow-y-auto custom-scrollbar font-mono text-xs">
+                {/* HEADER / BARCODE */}
+                <div className="flex items-start justify-between border-b border-slate-700 pb-4">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">
+                      FORM GST INV-01 • E-WAY BILL CONSIGNMENT NOTE
+                    </div>
+                    <h3 className="text-lg font-extrabold text-white mt-1">
+                      Commercial Tax Invoice & Escrow Bill
+                    </h3>
+                    <div className="text-slate-400 text-[11px] mt-0.5">
+                      Invoice No: <span className="text-white font-bold">{selectedOrderForInvoice.order_id}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <button
+                      onClick={() => setSelectedOrderForInvoice(null)}
+                      className="text-slate-400 hover:text-white p-1 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 transition-all"
+                    >
+                      ✕ Close
+                    </button>
+                    <div className="mt-2 text-[10px] text-slate-400">
+                      Date: {new Date(selectedOrderForInvoice.created_at || Date.now()).toLocaleDateString("en-IN")}
+                    </div>
+                  </div>
+                </div>
+
+                {/* E-WAY BILL NUMBER & BARCODE VISUALIZER */}
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[9px] uppercase tracking-wider text-slate-400">Unique GST E-Way Bill Number</div>
+                    <div className="text-base font-extrabold text-emerald-400 tracking-wider mt-0.5">
+                      {selectedOrderForInvoice.eway_bill_no || "2418 9034 5122"}
+                    </div>
+                    <div className="text-[10px] text-slate-500">Valid for Heavy Multi-Axle Inter-State Agri Transit</div>
+                  </div>
+                  {/* BARCODE GRAPHIC */}
+                  <div className="flex items-center gap-0.5 h-10 px-3 bg-white rounded">
+                    {[3,1,2,4,1,3,2,1,4,2,3,1,2,3,1,4,2,1,3,2,4,1,2,3,1,2].map((w, i) => (
+                      <div key={i} className="bg-black h-8" style={{ width: `${w}px` }}></div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CONSIGNOR & CONSIGNEE DETAILS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-slate-700 pb-4">
+                  <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                    <div className="text-[9px] uppercase tracking-wider text-amber-400 font-bold mb-1">
+                      🌾 Consignor (FPO / Supplier)
+                    </div>
+                    <div className="text-white font-bold">{selectedOrderForInvoice.fpo_name || "Doaba Farmer Producer Company Ltd."}</div>
+                    <div className="text-slate-400 text-[10px] mt-0.5">Mandi: {selectedOrderForInvoice.mandi || "Khanna, Punjab APMC"}</div>
+                    <div className="text-slate-400 text-[10px]">GSTIN: <span className="text-slate-200">{selectedOrderForInvoice.fpo_gstin || "03AABCD1234F1Z5"}</span></div>
+                    <div className="text-slate-400 text-[10px]">M-Form Doc: PMB/M-FORM/2026/04</div>
+                  </div>
+
+                  <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                    <div className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold mb-1">
+                      🏢 Consignee (Buyer / Destination Mill)
+                    </div>
+                    <div className="text-white font-bold">{selectedOrderForInvoice.buyer_name || "Aryan Foods & Flour Mills Pvt. Ltd."}</div>
+                    <div className="text-slate-400 text-[10px] mt-0.5">{selectedOrderForInvoice.delivery_address}</div>
+                    <div className="text-slate-400 text-[10px]">GSTIN: <span className="text-slate-200">{selectedOrderForInvoice.gstin || "03AAACA4582K1ZD"}</span></div>
+                    <div className="text-slate-400 text-[10px]">Phone: {selectedOrderForInvoice.buyer_phone || "+91 98140-72641"}</div>
+                  </div>
+                </div>
+
+                {/* LINE ITEMS TABLE */}
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-2">Itemized Commercial Breakdown</div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-700 text-[10px] text-slate-400">
+                          <th className="py-2">Commodity Description</th>
+                          <th className="py-2">HSN</th>
+                          <th className="py-2 text-right">Qty (Qtl)</th>
+                          <th className="py-2 text-right">Rate (₹/Qtl)</th>
+                          <th className="py-2 text-right">Amount (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800 text-slate-300">
+                        {(() => {
+                          const qty = selectedOrderForInvoice.quantity_qtl || 100;
+                          const rate = selectedOrderForInvoice.base_price_per_qtl || 2580;
+                          const base = qty * rate;
+                          const freightRate = selectedOrderForInvoice.freight_per_qtl || 42;
+                          const freight = qty * freightRate;
+                          const cess = Math.round(base * 0.02);
+                          const bagging = qty * 45;
+                          const insurance = Math.round(base * 0.0015);
+                          const subtotal = base + freight + cess + bagging + insurance;
+
+                          return (
+                            <>
+                              <tr>
+                                <td className="py-2 font-semibold text-white">
+                                  {selectedOrderForInvoice.commodity || "Wheat"} ({selectedOrderForInvoice.variety || "Grade-A FAQ"})
+                                  <div className="text-[9px] text-slate-500">{selectedOrderForInvoice.bagging_type || "50KG JUTE GUNNY"}</div>
+                                </td>
+                                <td className="py-2 text-slate-400">10019910</td>
+                                <td className="py-2 text-right font-bold text-white">{qty}</td>
+                                <td className="py-2 text-right">₹{rate.toLocaleString()}</td>
+                                <td className="py-2 text-right font-bold text-white">₹{base.toLocaleString()}</td>
+                              </tr>
+                              <tr>
+                                <td className="py-1.5 text-slate-400">Dedicated Highway Freight (Transit Route)</td>
+                                <td className="py-1.5 text-slate-500">996511</td>
+                                <td className="py-1.5 text-right">{qty}</td>
+                                <td className="py-1.5 text-right">₹{freightRate}</td>
+                                <td className="py-1.5 text-right">₹{freight.toLocaleString()}</td>
+                              </tr>
+                              <tr>
+                                <td className="py-1.5 text-slate-400">APMC Mandi Cess & Market Development Fee (2.0%)</td>
+                                <td className="py-1.5 text-slate-500">999999</td>
+                                <td className="py-1.5 text-right">-</td>
+                                <td className="py-1.5 text-right">2.0%</td>
+                                <td className="py-1.5 text-right">₹{cess.toLocaleString()}</td>
+                              </tr>
+                              <tr>
+                                <td className="py-1.5 text-slate-400">Standard Gunny Bagging & Marine Transit Insurance</td>
+                                <td className="py-1.5 text-slate-500">630510</td>
+                                <td className="py-1.5 text-right">{qty}</td>
+                                <td className="py-1.5 text-right">Composite</td>
+                                <td className="py-1.5 text-right">₹{(bagging + insurance).toLocaleString()}</td>
+                              </tr>
+                              <tr className="border-t-2 border-slate-600 font-bold text-white text-sm">
+                                <td colSpan="4" className="py-2.5 text-right">Grand Total Landed Invoice (₹):</td>
+                                <td className="py-2.5 text-right text-emerald-400">
+                                  ₹{(selectedOrderForInvoice.total_invoice_amount || subtotal).toLocaleString()}
+                                </td>
+                              </tr>
+                            </>
+                          );
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* TRIPARTITE ESCROW STATUS CERTIFICATE */}
+                <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                      RBI REGULATED 3-STAGE ESCROW GUARANTEE
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                      {selectedOrderForInvoice.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-[10px]">
+                    <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
+                      <span className="text-slate-400 block">Stage 1: 20% Advance</span>
+                      <span className="text-emerald-400 font-bold">✓ Locked in Trust Escrow</span>
+                    </div>
+                    <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
+                      <span className="text-slate-400 block">Stage 2: 70% Dispatch</span>
+                      <span className={selectedOrderForInvoice.status === 'DISPATCHED' || selectedOrderForInvoice.status === 'DELIVERED' ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                        {selectedOrderForInvoice.status === 'DISPATCHED' || selectedOrderForInvoice.status === 'DELIVERED' ? '✓ Released at Weighment' : 'Pending Loading'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
+                      <span className="text-slate-400 block">Stage 3: 10% Final</span>
+                      <span className={selectedOrderForInvoice.status === 'DELIVERED' ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                        {selectedOrderForInvoice.status === 'DELIVERED' ? '✓ Settled at Mill' : 'Held at Destination'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* MODAL ACTIONS */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    Print / Download PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderForInvoice(null)}
+                    className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           )}
