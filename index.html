@@ -3,948 +3,1357 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KisanVyapar Mandi Desk | राष्ट्रीय कृषि थोक व्यापार मंच</title>
+  <title>AgriTrade Intelligence Desk | National B2B Commodity Exchange</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Rozha+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
             mono: ['"Fira Code"', 'monospace'],
-            mandi: ['"Rozha One"', 'serif'],
+          },
+          colors: {
+            surface: {
+              base: '#070a10',
+              subtle: '#0d131f',
+              card: '#111827',
+              border: '#1f293d',
+              accent: '#1e293b'
+            }
           }
         }
       }
     }
   </script>
   <style>
-    body { -webkit-tap-highlight-color: transparent; }
-    .custom-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
-    .custom-scroll::-webkit-scrollbar-track { background: #0c1712; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #234633; border-radius: 4px; }
-    .grain-pattern {
-      background-color: #061e14;
-      background-image: radial-gradient(#144833 0.8px, transparent 0.8px), radial-gradient(#144833 0.8px, #061e14 0.8px);
-      background-size: 32px 32px;
-      background-position: 0 0, 16px 16px;
+    body {
+      background-color: #070a10;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0d131f;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #1f293d;
+      border-radius: 9999px;
+    }
+    .grid-bg {
+      background-image: radial-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
     }
   </style>
 </head>
-<body class="grain-pattern text-stone-100 antialiased font-sans pb-28 md:pb-12 min-h-screen selection:bg-amber-500 selection:text-black">
+<body class="grid-bg min-h-screen text-slate-100 selection:bg-emerald-500 selection:text-black">
   <div id="root"></div>
+
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useMemo } = React;
 
-    const CROP_OPTIONS = [
-      { id: "Wheat", hindi: "गेहूं (Sharbati/Lokwan)", msp: 2425.0, icon: "🌾" },
-      { id: "Rice", hindi: "चावल (1121 Steam Basmati)", msp: 2320.0, icon: "🍚" },
-      { id: "Mustard", hindi: "सरसों (Mustard 42% Oil)", msp: 5650.0, icon: "🌻" },
-      { id: "Maize", hindi: "मक्का (Yellow Corn)", msp: 2225.0, icon: "🌽" },
-      { id: "Gram", hindi: "चना (Desi Chana)", msp: 5440.0, icon: "🫘" }
-    ];
-
-    const CITY_OPTIONS = ["Jalandhar", "Delhi", "Chandigarh", "Jaipur", "Mumbai"];
-
-    const BAGGING_LABELS = {
-      "50KG_JUTE_GUNNY": "50 kg नई जूट बोरी (B-Twill Gunny +₹65/qtl)",
-      "50KG_PP_BAG": "50 kg PP प्लास्टिक बैग (+₹28/qtl)",
-      "BULK_LOOSE_TIPPER": "खुला लोडिंग (Loose Tipper ₹0/qtl)"
+    const TRANSLATIONS = {
+      en: {
+        appTitle: "AgriTrade Intelligence",
+        appSubtitle: "National B2B Commodity & Procurement Desk",
+        radarActive: "PROCUREMENT RADAR LIVE",
+        radarDetails: "Monitoring 7 Mandis • OSRM Highway Matrix • Live Open-Meteo Weather • APMC Cess Rules",
+        navIntelligence: "Procurement AI",
+        navPrices: "Mandi Prices",
+        navDemand: "Demand & Bids",
+        navOrders: "Orders & Escrow",
+        bestPlaceTitle: "Procurement Intelligence Matrix",
+        bestPlaceDesc: "Real-time algorithmic scoring computes optimal procurement hubs by synthesizing live highway road distance, heavy-truck freight, origin & corridor weather, temperature hazard, state APMC taxes, and quality assaying.",
+        selectCrop: "Select Commodity",
+        destinationCity: "Destination Hub / Mill",
+        quantityRequired: "Volume (Quintals)",
+        calculateBtn: "Scan Mandis & Calculate Best Buy",
+        scanning: "Scanning highway routes & live weather...",
+        topPickBadge: "BEST VALUE PROCUREMENT HUB",
+        topPickRank: "#1 Ranked Mandi",
+        topPickDesc: "Lowest landed net cost and optimal transit safety window recommended by Procurement Intelligence.",
+        landedCost: "Net Landed Cost",
+        baseMandiPrice: "Mandi Base Price",
+        freightCost: "Highway Freight",
+        transitDistance: "Road Distance & Time",
+        weatherCondition: "Transit Weather",
+        temperature: "Temperature",
+        spoilageRisk: "Spoilage Risk",
+        recommendationScore: "Procurement Score",
+        executeOrder: "Execute Buy Order",
+        requestSample: "Request 1kg Sealed Sample",
+        allRankedMandis: "Ranked Mandi Comparison Matrix",
+        allRankedSubtitle: "Comparative analysis of all surveyed Mandis sorted by comprehensive procurement score",
+        rank: "Rank",
+        mandiLocation: "Mandi & State",
+        mandiBasePrice: "Mandi Price",
+        roadDistance: "Distance / Time",
+        freightPerQtl: "Freight / qtl",
+        weatherTemp: "Weather / Temp",
+        netLandedQtl: "Net Landed / qtl",
+        score: "Score",
+        action: "Action",
+        buy: "Buy",
+        sample: "Sample",
+        biddingTitle: "Demand & Bidding Exchange",
+        biddingSubtitle: "Double-auction order board: buyers place purchase demands and FPOs submit live supply bids with counter-negotiations",
+        placeBidBtn: "+ Post Demand / Bid",
+        fpoDeskNotice: "FPO Procurement View: Browse buyer purchase demands below. You can immediately accept contracts at the buyer's rate, submit a counter-offer, or post your own supply bid.",
+        allBids: "All Bids",
+        buyerDemands: "Buyer Purchase Demands",
+        fpoOffers: "FPO Supply Offers",
+        myBids: "My Placed Bids",
+        bidId: "Bid ID",
+        postedBy: "Posted By",
+        targetPrice: "Bid Price",
+        volume: "Volume",
+        deliveryCity: "Destination",
+        status: "Status",
+        acceptBid: "Accept & Lock Escrow",
+        counterOffer: "Counter Offer",
+        counterAccepted: "Accept Counter",
+        statusOpenAuction: "OPEN BUYER AUCTION",
+        statusOpenFpo: "OPEN FPO OFFER",
+        statusCountered: "COUNTER OFFERED",
+        statusAccepted: "CONTRACT LOCKED",
+        pricesTitle: "National Mandi Price Board",
+        pricesSubtitle: "Live wholesale prices across major APMC grain mandis with official MSP benchmark differentials",
+        searchPlaceholder: "Search mandi, commodity, or FPO...",
+        allCommodities: "All Commodities",
+        commodity: "Commodity",
+        variety: "Variety",
+        stockAvailable: "Stock Available",
+        moisture: "Moisture",
+        fpoProducer: "FPO Producer",
+        ordersTitle: "Executed Contracts & Escrow Settlements",
+        ordersSubtitle: "Multi-stage milestone escrow: 20% advance locked, 70% released on dispatch, 10% on destination delivery",
+        totalAmount: "Total Invoice",
+        advance20: "20% Advance",
+        dispatch70: "70% Loading",
+        final10: "10% Settlement",
+        dispatchOrder: "Mark Dispatched",
+        deliverOrder: "Finalize Delivery",
+        switchAccount: "Switch Account",
+        buyerAccount: "Wholesale Buyer",
+        fpoAccount: "Farmer Producer Co. (FPO)",
+        modalPlaceBidTitle: "Place New Market Bid / Offer",
+        modalCounterTitle: "Submit FPO Counter-Offer",
+        modalOrderTitle: "Confirm Commercial Order & Lock Escrow",
+        confirm: "Confirm & Submit",
+        cancel: "Cancel",
+        counterPrice: "Your Counter Price (₹/qtl)",
+        deliveryAddress: "Delivery Address",
+        gstinNumber: "GSTIN Number",
+        savingsNotice: "Estimated savings vs market average"
+      },
+      hi: {
+        appTitle: "एग्रीट्रेड इंटेलिजेंस",
+        appSubtitle: "राष्ट्रीय कृषि थोक व्यापार एवं खरीद इंटेलिजेंस मंच",
+        radarActive: "प्रोक्योरमेंट रडार सक्रिय",
+        radarDetails: "7 प्रमुख मंडियां • OSRM हाईवे मैट्रिक्स • लाइव मौसम • राज्य मंडी सेस नियम",
+        navIntelligence: "खरीद इंटेलिजेंस",
+        navPrices: "मंडी भाव",
+        navDemand: "मांग एवं बोली",
+        navOrders: "ऑर्डर एवं एस्क्रो",
+        bestPlaceTitle: "खरीद इंटेलिजेंस मैट्रिक्स (सर्वश्रेष्ठ स्थान)",
+        bestPlaceDesc: "हाईवे सड़क दूरी, ट्रक भाड़ा, रास्ते का लाइव मौसम, तापमान, राज्य मंडी सेस और गुणवत्ता के आधार पर एल्गोरिथम द्वारा सर्वोत्तम खरीद मंडी की गणना।",
+        selectCrop: "फसल चुनें",
+        destinationCity: "गंतव्य केंद्र / मिल",
+        quantityRequired: "मात्रा (क्विंटल)",
+        calculateBtn: "मंडियों को स्कैन करें एवं सर्वश्रेष्ठ विकल्प खोजें",
+        scanning: "हाईवे रूट एवं लाइव मौसम स्कैन हो रहा है...",
+        topPickBadge: "सर्वोत्तम खरीद मूल्य मंडी",
+        topPickRank: "#1 अनुशंसित मंडी",
+        topPickDesc: "न्यूनतम लैंडेड लागत और सबसे सुरक्षित परिवहन परिस्थितियों के आधार पर इंटेलिजेंस द्वारा शीर्ष अनुशंसित।",
+        landedCost: "कुल लैंडेड लागत",
+        baseMandiPrice: "मंडी मूल भाव",
+        freightCost: "सड़क परिवहन भाड़ा",
+        transitDistance: "सड़क दूरी एवं समय",
+        weatherCondition: "रास्ते का मौसम",
+        temperature: "तापमान",
+        spoilageRisk: "खराबी जोखिम",
+        recommendationScore: "खरीद स्कोर",
+        executeOrder: "खरीद ऑर्डर निष्पादित करें",
+        requestSample: "1 किग्रा सीलबंद नमूना मंगाएं",
+        allRankedMandis: "सभी स्कैन की गई मंडियों की रैंकिंग तुलना",
+        allRankedSubtitle: "समग्र खरीद स्कोर के आधार पर क्रमित सभी मंडियों का विस्तृत तुलनात्मक विश्लेषण",
+        rank: "रैंक",
+        mandiLocation: "मंडी एवं राज्य",
+        mandiBasePrice: "मंडी भाव",
+        roadDistance: "दूरी / समय",
+        freightPerQtl: "भाड़ा / क्विंटल",
+        weatherTemp: "मौसम / तापमान",
+        netLandedQtl: "नेट लैंडेड / क्विंटल",
+        score: "स्कोर",
+        action: "कार्रवाई",
+        buy: "खरीदें",
+        sample: "सैंपल",
+        biddingTitle: "मांग एवं बोली एक्सचेंज",
+        biddingSubtitle: "डबल ऑक्शन बोर्ड: खरीदार मांग दर्ज करें और एफपीओ लाइव बिक्री बोली लगाएं या काउंटर ऑफर दें",
+        placeBidBtn: "+ नई मांग / बोली लगाएं",
+        fpoDeskNotice: "एफपीओ मांग डेस्क: खरीदारों की लाइव मांग देखें। आप सीधे खरीदार के रेट पर अनुबंध स्वीकार कर सकते हैं, काउंटर ऑफर दे सकते हैं, या अपनी बिक्री बोली लगा सकते हैं।",
+        allBids: "सभी बोलियां",
+        buyerDemands: "खरीदार खरीद मांग",
+        fpoOffers: "एफपीओ बिक्री प्रस्ताव",
+        myBids: "मेरी लगाई गई बोलियां",
+        bidId: "बोली आईडी",
+        postedBy: "प्रस्तुतकर्ता",
+        targetPrice: "बोली भाव",
+        volume: "मात्रा",
+        deliveryCity: "गंतव्य",
+        status: "स्थिति",
+        acceptBid: "स्वीकार करें एवं एस्क्रो लॉक करें",
+        counterOffer: "काउंटर ऑफर दें",
+        counterAccepted: "काउंटर स्वीकारें",
+        statusOpenAuction: "खुली खरीदार नीलामी",
+        statusOpenFpo: "एफपीओ बिक्री प्रस्ताव",
+        statusCountered: "काउंटर ऑफर प्राप्त",
+        statusAccepted: "अनुबंध स्वीकृत",
+        pricesTitle: "राष्ट्रीय मंडी भाव बोर्ड",
+        pricesSubtitle: "प्रमुख अनाज मंडियों के वास्तविक थोक भाव और सरकारी न्यूनतम समर्थन मूल्य (MSP) तुलना",
+        searchPlaceholder: "मंडी, फसल या एफपीओ खोजें...",
+        allCommodities: "सभी फसलें",
+        commodity: "फसल",
+        variety: "किस्म",
+        stockAvailable: "उपलब्ध स्टॉक",
+        moisture: "नमी %",
+        fpoProducer: "उत्पादक एफपीओ",
+        ordersTitle: "निष्पादित अनुबंध एवं एस्क्रो भुगतान",
+        ordersSubtitle: "3-चरणीय एस्क्रो सुरक्षा: 20% अग्रिम लॉक, 70% ट्रक लोडिंग पर, 10% डिलीवरी पर विमोचन",
+        totalAmount: "कुल इनवॉइस",
+        advance20: "20% अग्रिम",
+        dispatch70: "70% प्रेषण",
+        final10: "10% अंतिम भुगतान",
+        dispatchOrder: "प्रेषित मार्क करें",
+        deliverOrder: "डिलीवरी पूर्ण करें",
+        switchAccount: "खाता बदलें",
+        buyerAccount: "थोक खरीदार",
+        fpoAccount: "किसान उत्पादक संगठन (FPO)",
+        modalPlaceBidTitle: "नई मार्केट बोली / मांग लगाएं",
+        modalCounterTitle: "एफपीओ काउंटर-ऑफर दर्ज करें",
+        modalOrderTitle: "व्यापारिक अनुबंध एवं एस्क्रो लॉक",
+        confirm: "पुष्टि करें एवं जमा करें",
+        cancel: "रद्द करें",
+        counterPrice: "आपका काउंटर भाव (₹/क्विंटल)",
+        deliveryAddress: "डिलीवरी का पता",
+        gstinNumber: "GSTIN नंबर",
+        savingsNotice: "औसत बाजार भाव की तुलना में बचत"
+      }
     };
 
-    const DEFAULT_ACCOUNTS = [
-      { email: "buyer@mill.com", id: "USR-BUYER-01", name: "Aryan Foods & Flour Mills Pvt. Ltd.", role: "BUYER", city: "Jalandhar", phone: "+91 98140 22341", gstin: "03AAACA4582K1ZD" },
-      { email: "delhi.miller@agro.com", id: "USR-BUYER-02", name: "Delhi Agro Processing Corp Pvt. Ltd.", role: "BUYER", city: "Delhi", phone: "+91 98101 44589", gstin: "07AABCD8821L1ZM" },
-      { email: "manager@doaba-fpo.org", id: "USR-FPO-01", name: "Doaba Farmer Producer Company Ltd.", role: "FPO", city: "Khanna", phone: "+91 98722 33412", gstin: "03AAACD9182P1ZQ" },
-      { email: "karnal.fpo@haryana.org", id: "USR-FPO-02", name: "Taraori Basmati Growers Farmer Producer Co. Ltd.", role: "FPO", city: "Karnal", phone: "+91 94160 55823", gstin: "06AABCK7712M1ZF" }
+    const CROP_CATALOG = [
+      { id: "Wheat", icon: "🌾", msp: 2425.0, varieties: "Sharbati / Lokwan" },
+      { id: "Rice", icon: "🍚", msp: 2320.0, varieties: "1121 Steam Basmati" },
+      { id: "Mustard", icon: "🌻", msp: 5650.0, varieties: "42% Oil Grade" },
+      { id: "Maize", icon: "🌽", msp: 2225.0, varieties: "Yellow Feed Grade" },
+      { id: "Gram", icon: "🫘", msp: 5440.0, varieties: "Desi Chana Bold" }
     ];
 
+    const DESTINATION_HUBS = [
+      { id: "Jalandhar", state: "Punjab", label: "Jalandhar (Focal Point)" },
+      { id: "Delhi", state: "Delhi", label: "Delhi NCR (Lawrence Road)" },
+      { id: "Mumbai", state: "Maharashtra", label: "Mumbai (Vashi APMC Hub)" },
+      { id: "Jaipur", state: "Rajasthan", label: "Jaipur (VKIA Area)" },
+      { id: "Chandigarh", state: "UT", label: "Chandigarh (Industrial Area)" }
+    ];
+
+    const DEMO_ACCOUNTS = {
+      buyer: {
+        email: "buyer@mill.com",
+        name: "Aryan Foods & Flour Mills Pvt. Ltd.",
+        role: "BUYER",
+        city: "Jalandhar",
+        phone: "+91 98140-72641",
+        gstin: "03AAACA4582K1ZD",
+        address: "Plot No. 48-52, Focal Point Phase-V, GT Road Bypass, Jalandhar, Punjab"
+      },
+      fpo: {
+        email: "manager@doaba-fpo.org",
+        name: "Doaba Farmer Producer Company Ltd.",
+        role: "FPO",
+        city: "Khanna",
+        phone: "+91 98150-64219",
+        gstin: "03AAACD9182P1ZQ",
+        address: "Shop No. 24-B, New Grain Market, GT Road, Khanna, Punjab"
+      }
+    };
+
     function App() {
-      const [currentUser, setCurrentUser] = useState(DEFAULT_ACCOUNTS[0]);
-      const [token, setToken] = useState(localStorage.getItem("agri_jwt") || "");
-      const [accounts, setAccounts] = useState(DEFAULT_ACCOUNTS);
-      const [tab, setTab] = useState("calculator"); // calculator, bidding, escrow, passbook, compliance
-      const [notification, setNotification] = useState(null);
-      const [showLoginModal, setShowLoginModal] = useState(false);
+      const [lang, setLang] = useState("en"); // English default!
+      const [activeTab, setActiveTab] = useState("intelligence"); // Intelligence first!
+      const [currentUser, setCurrentUser] = useState(DEMO_ACCOUNTS.buyer);
+      const [token, setToken] = useState(null);
+      const [toasts, setToasts] = useState([]);
 
-      const [commodity, setCommodity] = useState("Wheat");
-      const [city, setCity] = useState("Delhi");
-      const [quantityQtl, setQuantityQtl] = useState(200);
-      const [baggingType, setBaggingType] = useState("50KG_JUTE_GUNNY");
-      const [insuranceOpted, setInsuranceOpted] = useState(true);
+      // Data States
+      const [marketLots, setMarketLots] = useState([]);
+      const [liveBids, setLiveBids] = useState([]);
+      const [liveOrders, setLiveOrders] = useState([]);
 
-      const [recommendationData, setRecommendationData] = useState(null);
-      const [loadingRecs, setLoadingRecs] = useState(false);
+      // Procurement Intelligence State
+      const [selectedCrop, setSelectedCrop] = useState("Wheat");
+      const [destinationCity, setDestinationCity] = useState("Jalandhar");
+      const [requiredQty, setRequiredQty] = useState(200);
+      const [intelligenceResults, setIntelligenceResults] = useState(null);
+      const [isScanning, setIsScanning] = useState(false);
 
-      const [bids, setBids] = useState([]);
-      const [orders, setOrders] = useState([]);
-      const [samples, setSamples] = useState([]);
-      const [passbook, setPassbook] = useState(null);
-      const [selectedPassbookLot, setSelectedPassbookLot] = useState("FPO-LOT-101");
+      // Modals
+      const [isPlaceBidOpen, setIsPlaceBidOpen] = useState(false);
+      const [isCounterOpen, setIsCounterOpen] = useState(false);
+      const [selectedBidForCounter, setSelectedBidForCounter] = useState(null);
+      const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
+      const [selectedLotForOrder, setSelectedLotForOrder] = useState(null);
+      const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
-      const [showNewBidModal, setShowNewBidModal] = useState(false);
-      const [showCounterModal, setShowCounterModal] = useState(null);
-      const [showBuyModal, setShowBuyModal] = useState(null);
-      const [showSampleModal, setShowSampleModal] = useState(null);
-      const [showAssayingModal, setShowAssayingModal] = useState(null);
-      const [showEwayModal, setShowEwayModal] = useState(null);
+      // Filter States
+      const [bidFilter, setBidFilter] = useState("ALL");
+      const [priceSearch, setPriceSearch] = useState("");
+      const [priceCropFilter, setPriceCropFilter] = useState("ALL");
 
-      const [bidForm, setBidForm] = useState({ commodity: "Wheat", target_qty_qtl: 200, target_bid_price_per_qtl: 2470, delivery_city: "Delhi" });
-      const [counterPrice, setCounterPrice] = useState(2520);
-      const [counterNotes, setCounterNotes] = useState("100% शुद्ध ग्रेड-A माल, तुरंत रवानगी तैयार");
-      const [deliveryAddress, setDeliveryAddress] = useState("आर्यन फूड्स एंड फ्लोर मिल्स प्रा. लि., प्लॉट नं. 48-52, फोकल प्वाइंट फेज-V, जी.टी. रोड बाईपास, जालंधर, पंजाब - 144050");
-      const [gstin, setGstin] = useState("03AAACA4582K1ZD");
+      const t = TRANSLATIONS[lang];
 
-      const isBuyer = currentUser?.role === "BUYER";
-      const isFPO = currentUser?.role === "FPO";
-
-      const showToast = (msg) => {
-        setNotification(msg);
-        setTimeout(() => setNotification(null), 4500);
+      const showToast = (message, type = "success") => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => {
+          setToasts(prev => prev.filter(item => item.id !== id));
+        }, 4000);
       };
 
-      const apiFetch = async (url, options = {}) => {
-        const headers = { "Content-Type": "application/json", ...options.headers };
-        const activeToken = token || localStorage.getItem("agri_jwt");
-        if (activeToken) headers["Authorization"] = `Bearer ${activeToken}`;
-        try {
-          const res = await fetch(url, { ...options, headers });
-          if (res.status === 401 || res.status === 403) {
-            const err = await res.json().catch(() => ({ detail: "पहुंच अस्वीकृत" }));
-            showToast(`अधिकार सूचना: ${err.detail}`);
-            return null;
-          }
-          return res;
-        } catch (err) {
-          showToast("सर्वर कनेक्शन त्रुटि");
-          return null;
-        }
-      };
-
-      const loginPersona = async (email) => {
+      const authenticateUser = async (userObj) => {
         try {
           const res = await fetch("/api/v1/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email: userObj.email, otp: "123456" })
           });
-          if (res.ok) {
-            const data = await res.json();
-            const jwt = data.token || data.access_token;
-            setToken(jwt);
-            localStorage.setItem("agri_jwt", jwt);
-            setCurrentUser(data.user);
-            setShowLoginModal(false);
-            const portalName = data.user.role === "BUYER" ? "🌾 खरीदार पोर्टल (Buyer Desk)" : "🚜 FPO / विक्रेता पोर्टल (Seller Desk)";
-            showToast(`लॉगिन सफल: ${portalName} • ${data.user.name}`);
-            refreshTradingData();
-          } else {
-            const fallbackUser = (accounts.length ? accounts : DEFAULT_ACCOUNTS).find(a => a.email === email) || DEFAULT_ACCOUNTS[0];
-            setCurrentUser(fallbackUser);
-            setShowLoginModal(false);
-            showToast(`सक्रिय: ${fallbackUser.name} (${fallbackUser.role})`);
-          }
-        } catch (e) {
-          const fallbackUser = (accounts.length ? accounts : DEFAULT_ACCOUNTS).find(a => a.email === email) || DEFAULT_ACCOUNTS[0];
-          setCurrentUser(fallbackUser);
-          setShowLoginModal(false);
-          showToast(`सक्रिय (ऑफलाइन): ${fallbackUser.name} (${fallbackUser.role})`);
-        }
-      };
-
-      const fetchMe = async () => {
-        const res = await apiFetch("/api/v1/auth/me");
-        if (res && res.ok) {
           const data = await res.json();
-          setCurrentUser(data.user);
-        } else {
-          loginPersona("buyer@mill.com");
+          if (res.ok && data.access_token) {
+            setToken(data.access_token);
+            setCurrentUser(data.user);
+            showToast(`Logged in as ${data.user.name} (${data.user.role})`);
+          }
+        } catch (err) {
+          console.error("Auth error:", err);
         }
       };
 
       useEffect(() => {
-        fetch("/api/v1/auth/accounts")
-          .then(r => r.json())
-          .then(data => {
-            if (Array.isArray(data) && data.length > 0) {
-              setAccounts(data);
-            }
-            if (!token) {
-              loginPersona("buyer@mill.com");
-            } else {
-              fetchMe();
-            }
-          })
-          .catch(() => {
-            if (!token) loginPersona("buyer@mill.com");
-          });
+        authenticateUser(DEMO_ACCOUNTS.buyer);
+        fetchMarketLots();
+        fetchLiveBids();
+        fetchLiveOrders();
       }, []);
 
-      const fetchRecommendations = async () => {
-        setLoadingRecs(true);
+      useEffect(() => {
+        runProcurementScan();
+      }, [selectedCrop, destinationCity, requiredQty]);
+
+      const fetchMarketLots = async () => {
+        try {
+          const res = await fetch("/api/v1/market/lots");
+          if (res.ok) {
+            const data = await res.json();
+            setMarketLots(data);
+          }
+        } catch (e) {
+          console.error("Failed to fetch lots:", e);
+        }
+      };
+
+      const fetchLiveBids = async () => {
+        try {
+          const res = await fetch("/api/v1/bids/live");
+          if (res.ok) {
+            const data = await res.json();
+            setLiveBids(data);
+          }
+        } catch (e) {
+          console.error("Failed to fetch bids:", e);
+        }
+      };
+
+      const fetchLiveOrders = async () => {
+        try {
+          const res = await fetch("/api/v1/orders/all");
+          if (res.ok) {
+            const data = await res.json();
+            setLiveOrders(data);
+          }
+        } catch (e) {
+          console.error("Failed to fetch orders:", e);
+        }
+      };
+
+      const runProcurementScan = async () => {
+        setIsScanning(true);
         try {
           const res = await fetch("/api/v1/recommendations", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              commodity,
-              buyer_city: city,
-              quantity_qtl: Number(quantityQtl) || 200
+              commodity: selectedCrop,
+              buyer_city: destinationCity,
+              quantity_qtl: Number(requiredQty) || 100
             })
           });
           if (res.ok) {
-            setRecommendationData(await res.json());
+            const data = await res.json();
+            setIntelligenceResults(data);
           }
-        } catch (e) {
-          console.error(e);
+        } catch (err) {
+          console.error("Procurement scan error:", err);
         } finally {
-          setLoadingRecs(false);
-        }
-      };
-
-      useEffect(() => {
-        fetchRecommendations();
-      }, [commodity, city, quantityQtl]);
-
-      const refreshTradingData = async () => {
-        try {
-          const [bidsRes, ordersRes, samplesRes] = await Promise.all([
-            fetch("/api/v1/bids/live"),
-            fetch("/api/v1/orders/all"),
-            fetch("/api/v1/commercial/samples")
-          ]);
-          if (bidsRes.ok) setBids(await bidsRes.json());
-          if (ordersRes.ok) setOrders(await ordersRes.json());
-          if (samplesRes.ok) setSamples(await samplesRes.json());
-        } catch (e) {}
-      };
-
-      useEffect(() => {
-        refreshTradingData();
-        const iv = setInterval(refreshTradingData, 8000);
-        return () => clearInterval(iv);
-      }, []);
-
-      useEffect(() => {
-        if (selectedPassbookLot) {
-          fetch(`/api/v1/fpo/farmer-passbook/${selectedPassbookLot}`)
-            .then(r => r.ok ? r.json() : null)
-            .then(d => { if (d) setPassbook(d); })
-            .catch(() => {});
-        }
-      }, [selectedPassbookLot]);
-
-      const handleCreateBid = async (e) => {
-        e.preventDefault();
-        const res = await apiFetch("/api/v1/bids/create", { method: "POST", body: JSON.stringify(bidForm) });
-        if (res && res.ok) {
-          const d = await res.json();
-          showToast(d.message || "बोली / प्रस्ताव दर्ज किया गया!");
-          setShowNewBidModal(false);
-          refreshTradingData();
+          setIsScanning(false);
         }
       };
 
       const handleAcceptBid = async (bidId) => {
-        const res = await apiFetch(`/api/v1/bids/${bidId}/accept`, { method: "POST" });
-        if (res && res.ok) {
-          const d = await res.json();
-          showToast(`सौदा पक्का! ऑर्डर आईडी: ${d.order?.order_id || 'तैयार'}`);
-          refreshTradingData();
-          setTab("escrow");
-        }
-      };
-
-      const handleCounterBid = async (e) => {
-        e.preventDefault();
-        if (!showCounterModal) return;
-        const res = await apiFetch(`/api/v1/bids/${showCounterModal.bid_id}/counter`, {
-          method: "POST",
-          body: JSON.stringify({ counter_price_per_qtl: Number(counterPrice), counter_notes: counterNotes })
-        });
-        if (res && res.ok) {
-          showToast("पलट भाव भेजा गया!");
-          setShowCounterModal(null);
-          refreshTradingData();
+        if (!token) return showToast("Please login first", "error");
+        try {
+          const res = await fetch(`/api/v1/bids/${bidId}/accept`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast(data.message || "Contract accepted! Escrow locked.");
+            fetchLiveBids();
+            fetchLiveOrders();
+          } else {
+            showToast(data.detail || "Error accepting bid", "error");
+          }
+        } catch (e) {
+          showToast("Network error accepting bid", "error");
         }
       };
 
       const handleAcceptCounter = async (bidId) => {
-        const res = await apiFetch(`/api/v1/bids/${bidId}/counter-accept`, { method: "POST" });
-        if (res && res.ok) {
-          const d = await res.json();
-          showToast(`पलट भाव स्वीकार! ऑर्डर तैयार: ${d.order_id}`);
-          refreshTradingData();
-          setTab("escrow");
-        }
-      };
-
-      const handleExecuteBuy = async (lot) => {
-        const res = await apiFetch("/api/v1/orders/buy", {
-          method: "POST",
-          body: JSON.stringify({
-            lot_id: lot.id,
-            quantity_qtl: Number(quantityQtl) || 200,
-            delivery_address: deliveryAddress,
-            gstin: gstin,
-            buyer_city: city,
-            bagging_type: baggingType,
-            transit_insurance: insuranceOpted
-          })
-        });
-        if (res && res.ok) {
-          const d = await res.json();
-          showToast(`सौदा पक्का! ई-वे बिल: ${d.eway_bill_no}`);
-          setShowBuyModal(null);
-          refreshTradingData();
-          setTab("escrow");
-        }
-      };
-
-      const handleRequestSample = async (lot) => {
-        const res = await apiFetch("/api/v1/commercial/request-sample", {
-          method: "POST",
-          body: JSON.stringify({ lot_id: lot.id, delivery_address: deliveryAddress })
-        });
-        if (res && res.ok) {
-          const d = await res.json();
-          showToast(`1 किग्रा सीलबंद नमूना रवाना! कूरियर: ${d.sample_record.courier_tracking_no}`);
-          setShowSampleModal(null);
-          refreshTradingData();
+        if (!token) return showToast("Please login first", "error");
+        try {
+          const res = await fetch(`/api/v1/bids/${bidId}/counter-accept`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast(data.message || "Counter offer accepted! Order generated.");
+            fetchLiveBids();
+            fetchLiveOrders();
+          } else {
+            showToast(data.detail || "Error accepting counter", "error");
+          }
+        } catch (e) {
+          showToast("Network error accepting counter", "error");
         }
       };
 
       const handleDispatchOrder = async (orderId) => {
-        const res = await apiFetch(`/api/v1/orders/${orderId}/dispatch`, { method: "POST" });
-        if (res && res.ok) {
-          const d = await res.json();
-          showToast(`गाड़ी रवाना! 70% अमानत FPO को जारी (₹${d.released_dispatch_70?.toLocaleString('en-IN')})`);
-          refreshTradingData();
+        if (!token) return showToast("Please login first", "error");
+        try {
+          const res = await fetch(`/api/v1/orders/${orderId}/dispatch`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              truck_reg_number: "PB-10-CZ-4819",
+              driver_phone: "+91 98140-55219",
+              origin_gross_wt_qtl: 265.4,
+              origin_tare_wt_qtl: 65.4
+            })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast(`Order ${orderId} dispatched! Stage 2 (70%) Escrow released to FPO.`);
+            fetchLiveOrders();
+          } else {
+            showToast(data.detail || "Dispatch failed", "error");
+          }
+        } catch (e) {
+          showToast("Network error during dispatch", "error");
         }
       };
 
       const handleDeliverOrder = async (orderId) => {
-        const res = await apiFetch(`/api/v1/orders/${orderId}/deliver`, { method: "POST" });
-        if (res && res.ok) {
-          showToast(`माल प्राप्ति सत्यापित! अंतिम 10% अमानत जारी (सौदा पूर्ण)`);
-          refreshTradingData();
+        if (!token) return showToast("Please login first", "error");
+        try {
+          const res = await fetch(`/api/v1/orders/${orderId}/deliver`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              destination_gross_wt_qtl: 264.9,
+              destination_tare_wt_qtl: 65.4,
+              tested_moisture_pct: 11.4
+            })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast(`Delivery confirmed! Stage 3 (10%) Final Escrow settled.`);
+            fetchLiveOrders();
+          } else {
+            showToast(data.detail || "Delivery confirmation failed", "error");
+          }
+        } catch (e) {
+          showToast("Network error during delivery", "error");
         }
       };
 
-      const activeBestPick = recommendationData?.best_pick;
-      const allListings = recommendationData?.all_listings || [];
+      const handleRequestSample = async (lot) => {
+        if (!token) return showToast("Please login first", "error");
+        try {
+          const res = await fetch("/api/v1/commercial/request-sample", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              lot_id: lot.id,
+              recipient_name: currentUser.name,
+              delivery_address: currentUser.address || "Industrial Area Phase 1",
+              contact_phone: currentUser.phone
+            })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast(`Sample requested from ${lot.mandi}! Tracking: ${data.sample?.tracking_code}`);
+          } else {
+            showToast(data.detail || "Failed to request sample", "error");
+          }
+        } catch (e) {
+          showToast("Network error requesting sample", "error");
+        }
+      };
+
+      const filteredBids = useMemo(() => {
+        return liveBids.filter(b => {
+          if (bidFilter === "BUYER_DEMAND") return b.status === "OPEN_AUCTION" || b.status === "COUNTER_OFFERED";
+          if (bidFilter === "FPO_OFFER") return b.status === "OPEN_FPO_OFFER";
+          if (bidFilter === "MY_BIDS") return b.buyer_name === currentUser.name || b.counter_fpo_name === currentUser.name;
+          return true;
+        });
+      }, [liveBids, bidFilter, currentUser]);
+
+      const filteredLots = useMemo(() => {
+        return marketLots.filter(l => {
+          const matchesCrop = priceCropFilter === "ALL" || l.commodity.toLowerCase() === priceCropFilter.toLowerCase();
+          const q = priceSearch.toLowerCase();
+          const matchesSearch = !q || l.mandi.toLowerCase().includes(q) || l.commodity.toLowerCase().includes(q) || l.fpo_name.toLowerCase().includes(q);
+          return matchesCrop && matchesSearch;
+        });
+      }, [marketLots, priceCropFilter, priceSearch]);
+
+      const bestPick = intelligenceResults?.best_pick;
+      const allScannedListings = intelligenceResults?.all_listings || [];
 
       return (
-        <div className="min-h-screen flex flex-col">
-          {/* Top Mandi Flash Header */}
-          <header className="bg-[#052418] border-b border-[#1b5e3f] sticky top-0 z-40 shadow-xl">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
-              
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-bold text-2xl shadow-lg border-2 border-amber-300">
-                  🌾
+        <div className="min-h-screen flex flex-col custom-scrollbar">
+          {/* TOP REAL-TIME COMMODITY TICKER */}
+          <div className="bg-surface-subtle/90 border-b border-surface-border text-xs py-2 px-4 overflow-x-auto whitespace-nowrap custom-scrollbar flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 font-mono text-emerald-400 font-semibold">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>{t.radarActive}</span>
+              </div>
+              <div className="flex items-center gap-6 text-slate-300 font-mono text-[11px]">
+                <span>🌾 Wheat: <b className="text-white">₹2,580/qtl</b> <span className="text-emerald-400">+₹155 (MSP ₹2,425)</span></span>
+                <span className="text-slate-600">|</span>
+                <span>🍚 Rice: <b className="text-white">₹3,850/qtl</b> <span className="text-emerald-400">+₹1,530</span></span>
+                <span className="text-slate-600">|</span>
+                <span>🌻 Mustard: <b className="text-white">₹5,720/qtl</b> <span className="text-emerald-400">+₹70</span></span>
+                <span className="text-slate-600">|</span>
+                <span>🌽 Maize: <b className="text-white">₹2,240/qtl</b> <span className="text-emerald-400">+₹15</span></span>
+                <span className="text-slate-600">|</span>
+                <span>🫘 Gram: <b className="text-white">₹5,450/qtl</b> <span className="text-emerald-400">+₹10</span></span>
+              </div>
+            </div>
+
+            <div className="hidden md:flex items-center gap-4 text-slate-400 text-[11px] font-mono">
+              <span className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                OSRM Routing: Active
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+                Open-Meteo: Live
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                Escrow: 20-70-10
+              </span>
+            </div>
+          </div>
+
+          {/* MAIN MODERN NAVBAR */}
+          <header className="sticky top-0 z-40 bg-surface-base/95 backdrop-blur-md border-b border-surface-border">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+              {/* BRAND LOGO */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-cyan-500 p-0.5 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+                  <div className="w-full h-full bg-surface-base rounded-[10px] flex items-center justify-center">
+                    <svg className="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                    </svg>
+                  </div>
                 </div>
                 <div>
-                  <div className="flex items-center space-x-2">
-                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-amber-400 font-mandi">
-                      किसान व्यापार मंडी डेस्क
-                    </h1>
-                    <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600">
-                      LIVE MANDI TRADING
-                    </span>
+                  <div className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    {t.appTitle}
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-medium border border-emerald-500/30">v5.2</span>
                   </div>
-                  <p className="text-xs text-stone-300 font-medium">
-                    National B2B Grain Wholesaler Desk • राष्ट्रीय थोक अनाज मंडी मंच
-                  </p>
+                  <div className="text-[11px] text-slate-400 font-medium hidden sm:block">
+                    {t.appSubtitle}
+                  </div>
                 </div>
               </div>
 
-              {/* TWO DISTINCT PORTALS: DIRECT 1-CLICK TOGGLE & PERSONA BADGE */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                {/* 1-Click Segmented Toggle Switcher */}
-                <div className="flex items-center bg-[#02130c] p-1 rounded-xl border-2 border-emerald-600/80 shadow-lg">
-                  <button
-                    type="button"
-                    onClick={() => loginPersona("buyer@mill.com")}
-                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-black flex items-center space-x-1.5 transition-all duration-150 cursor-pointer ${
-                      isBuyer
-                        ? "bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300"
-                        : "text-stone-300 hover:text-white hover:bg-[#093220]"
-                    }`}
-                    title="खरीदार पोर्टल में बदलें (Switch to Buyer Desk)"
-                  >
-                    <span>🌾</span>
-                    <span>खरीदार (Buyer)</span>
-                    {isBuyer && <span className="ml-1 text-[9px] bg-slate-950 text-amber-300 px-1.5 py-0.5 rounded-full font-black">सक्रिय</span>}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => loginPersona("manager@doaba-fpo.org")}
-                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-black flex items-center space-x-1.5 transition-all duration-150 cursor-pointer ${
-                      isFPO
-                        ? "bg-emerald-500 text-slate-950 shadow-md ring-2 ring-emerald-300"
-                        : "text-stone-300 hover:text-white hover:bg-[#093220]"
-                    }`}
-                    title="विक्रेता / FPO पोर्टल में बदलें (Switch to Seller Desk)"
-                  >
-                    <span>🚜</span>
-                    <span>विक्रेता / FPO (Seller)</span>
-                    {isFPO && <span className="ml-1 text-[9px] bg-slate-950 text-emerald-300 px-1.5 py-0.5 rounded-full font-black">सक्रिय</span>}
-                  </button>
-                </div>
-
-                {/* Current Active Persona & Other Accounts Modal */}
+              {/* NAVIGATION TABS */}
+              <nav className="hidden md:flex items-center gap-1 bg-surface-subtle p-1 rounded-xl border border-surface-border">
                 <button
-                  type="button"
-                  onClick={() => setShowLoginModal(true)}
-                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border shadow text-left cursor-pointer hover:opacity-95 transition ${
-                    isBuyer ? 'bg-amber-950/80 border-amber-500 text-amber-300' :
-                    isFPO ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' :
-                    'bg-stone-900 border-stone-600 text-stone-300'
+                  onClick={() => setActiveTab("intelligence")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                    activeTab === "intelligence"
+                      ? "bg-emerald-500 text-black font-semibold shadow-md shadow-emerald-500/25"
+                      : "text-slate-300 hover:text-white hover:bg-surface-card"
                   }`}
-                  title="अन्य खाता चुनें (Click to switch accounts)"
                 >
-                  <span className="text-base">{isBuyer ? '🌾' : '🚜'}</span>
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-80 flex items-center space-x-1">
-                      <span>{isBuyer ? 'खरीदार मिलर' : 'FPO समिति'}</span>
-                      <span className="text-[9px] underline text-stone-300 ml-1">▼ अन्य खाते</span>
-                    </div>
-                    <div className="text-xs font-black truncate max-w-[130px] sm:max-w-[170px]">
-                      {currentUser?.name || 'अतिथि'}
-                    </div>
-                  </div>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  {t.navIntelligence}
                 </button>
-              </div>
-            </div>
 
-            {/* Live Ticker Bar */}
-            <div className="bg-[#03170f] border-t border-[#12422c] py-1.5 px-4 overflow-x-auto text-[11px] font-mono text-stone-300 whitespace-nowrap custom-scroll flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                <span className="text-amber-400 font-bold flex items-center">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping mr-1.5"></span>
-                  मंडी हाजिर भाव:
-                </span>
-                <span>🌾 गेहूं खन्ना: <b className="text-white">₹2,580</b> <span className="text-emerald-400">(+₹155 vs MSP)</span></span>
-                <span>🌾 गेहूं करनाल: <b className="text-white">₹2,520</b></span>
-                <span>🌾 गेहूं इंदौर: <b className="text-white">₹2,490</b></span>
-                <span>🍚 बासमती 1121: <b className="text-white">₹4,100</b></span>
-                <span>🌻 सरसों कोटा: <b className="text-white">₹5,620</b></span>
-                <span>🌽 मक्का छिंदवाड़ा: <b className="text-white">₹2,240</b></span>
-              </div>
-              <div className="hidden lg:flex items-center space-x-4 text-stone-400">
-                <span>🔒 3-चरणीय सुरक्षित अमानत (20%-70%-10%)</span>
-                <span>📜 CGST E-Way Bill मान्य</span>
-                <span>TCS: <b>0.1%</b></span>
-              </div>
-            </div>
-
-            {/* Navigation Tabs */}
-            <div className="max-w-7xl mx-auto px-4 flex space-x-1 sm:space-x-3 overflow-x-auto custom-scroll pt-2">
-              {[
-                { id: "calculator", label: "मंडी भाव व लागत (Landed Bhao)", icon: "🌾" },
-                { id: "bidding", label: "बोली व सौदा कक्ष (Live Bidding)", icon: "⚖️", count: bids.length },
-                { id: "escrow", label: "व्यापार सौदे व भुगतान (Orders & Escrow)", icon: "📋", count: orders.length },
-                { id: "passbook", label: "किसान बही खाता (Farmer Passbook)", icon: "👨‍🌾" },
-                { id: "compliance", label: "सरकारी दस्तावेज़ (M-Form & EWB)", icon: "📜" }
-              ].map(t => (
                 <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`flex items-center space-x-1.5 px-3.5 py-2.5 text-xs sm:text-sm font-bold rounded-t-lg transition border-t-2 border-x whitespace-nowrap ${
-                    tab === t.id
-                      ? "bg-[#0b3323] text-amber-300 border-amber-400 border-b-0 shadow-lg"
-                      : "bg-[#052015] text-stone-400 border-transparent hover:text-stone-200 hover:bg-[#082a1d]"
+                  onClick={() => setActiveTab("prices")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                    activeTab === "prices"
+                      ? "bg-emerald-500 text-black font-semibold shadow-md shadow-emerald-500/25"
+                      : "text-slate-300 hover:text-white hover:bg-surface-card"
                   }`}
                 >
-                  <span>{t.icon}</span>
-                  <span>{t.label}</span>
-                  {t.count !== undefined && t.count > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-black font-black">
-                      {t.count}
-                    </span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l3 18h12l3-18H3z" /></svg>
+                  {t.navPrices}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("demand")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                    activeTab === "demand"
+                      ? "bg-emerald-500 text-black font-semibold shadow-md shadow-emerald-500/25"
+                      : "text-slate-300 hover:text-white hover:bg-surface-card"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                  {t.navDemand}
+                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("orders")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                    activeTab === "orders"
+                      ? "bg-emerald-500 text-black font-semibold shadow-md shadow-emerald-500/25"
+                      : "text-slate-300 hover:text-white hover:bg-surface-card"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  {t.navOrders}
+                  {liveOrders.length > 0 && (
+                    <span className="px-1.5 py-0.2 bg-slate-700 text-white rounded text-[10px]">{liveOrders.length}</span>
                   )}
                 </button>
-              ))}
+              </nav>
+
+              {/* RIGHT CONTROLS: LANGUAGE SWITCHER & ROLE SWITCHER */}
+              <div className="flex items-center gap-3">
+                {/* LANGUAGE SWITCHER BUTTON */}
+                <div className="flex items-center bg-surface-subtle p-1 rounded-xl border border-surface-border">
+                  <button
+                    onClick={() => setLang("en")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      lang === "en" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    EN
+                  </button>
+                  <span className="text-slate-600 px-1">/</span>
+                  <button
+                    onClick={() => setLang("hi")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      lang === "hi" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    हिंदी
+                  </button>
+                </div>
+
+                {/* USER PROFILE & ROLE SWITCHER */}
+                <button
+                  onClick={() => setIsAccountModalOpen(true)}
+                  className="flex items-center gap-2.5 bg-surface-card hover:bg-surface-accent border border-surface-border px-3 py-1.5 rounded-xl transition-all group"
+                  title="Switch between Wholesale Buyer and FPO"
+                >
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                    currentUser.role === "BUYER" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                  }`}>
+                    {currentUser.role === "BUYER" ? "B" : "FPO"}
+                  </div>
+                  <div className="text-left hidden lg:block">
+                    <div className="text-xs font-semibold text-white group-hover:text-emerald-400 transition-colors line-clamp-1 max-w-[140px]">
+                      {currentUser.name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      {currentUser.role === "BUYER" ? t.buyerAccount : t.fpoAccount}
+                    </div>
+                  </div>
+                  <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* MOBILE NAV BAR */}
+            <div className="md:hidden flex items-center justify-around border-t border-surface-border bg-surface-subtle/80 px-2 py-2">
+              <button
+                onClick={() => setActiveTab("intelligence")}
+                className={`text-xs px-3 py-1 rounded-md ${activeTab === "intelligence" ? "bg-emerald-500 text-black font-bold" : "text-slate-400"}`}
+              >
+                {t.navIntelligence}
+              </button>
+              <button
+                onClick={() => setActiveTab("prices")}
+                className={`text-xs px-3 py-1 rounded-md ${activeTab === "prices" ? "bg-emerald-500 text-black font-bold" : "text-slate-400"}`}
+              >
+                {t.navPrices}
+              </button>
+              <button
+                onClick={() => setActiveTab("demand")}
+                className={`text-xs px-3 py-1 rounded-md ${activeTab === "demand" ? "bg-emerald-500 text-black font-bold" : "text-slate-400"}`}
+              >
+                {t.navDemand}
+              </button>
+              <button
+                onClick={() => setActiveTab("orders")}
+                className={`text-xs px-3 py-1 rounded-md ${activeTab === "orders" ? "bg-emerald-500 text-black font-bold" : "text-slate-400"}`}
+              >
+                {t.navOrders}
+              </button>
             </div>
           </header>
 
-          {/* Toast Notification */}
-          {notification && (
-            <div className="fixed top-20 right-4 z-50 max-w-md bg-amber-400 text-slate-950 font-bold px-4 py-3 rounded-lg shadow-2xl border-2 border-amber-200 flex items-center space-x-2 animate-bounce">
-              <span className="text-xl">📢</span>
-              <span className="text-xs sm:text-sm">{notification}</span>
-            </div>
-          )}
+          {/* MAIN BODY VIEW */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+            
+            {/* 1. PROCUREMENT INTELLIGENCE DESK (BEST PLACE TO BUY) */}
+            {activeTab === "intelligence" && (
+              <div className="space-y-8 animate-fadeIn">
+                {/* HEADER & RADAR STATUS */}
+                <div className="bg-gradient-to-r from-surface-card via-surface-card to-surface-subtle border border-surface-border rounded-2xl p-6 relative overflow-hidden shadow-xl">
+                  <div className="absolute right-0 top-0 w-96 h-full bg-emerald-500/5 blur-3xl pointer-events-none"></div>
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-semibold mb-3">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        {t.radarActive}
+                      </div>
+                      <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                        {t.bestPlaceTitle}
+                      </h1>
+                      <p className="text-slate-400 text-xs sm:text-sm max-w-3xl mt-1.5 leading-relaxed">
+                        {t.bestPlaceDesc}
+                      </p>
+                    </div>
 
-          {/* Main Content Area */}
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={runProcurementScan}
+                        disabled={isScanning}
+                        className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+                      >
+                        <svg className={`w-4 h-4 ${isScanning ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        {isScanning ? t.scanning : t.calculateBtn}
+                      </button>
+                    </div>
+                  </div>
 
-            {/* TAB 1: MANDI BHAO & LANDED COST CALCULATOR */}
-            {tab === "calculator" && (
-              <div className="space-y-6">
-                
-                {/* Active Portal Info Banner with Quick Switch */}
-                {isBuyer ? (
-                  <div className="bg-amber-950/60 border border-amber-500/70 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-lg">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">🌾</span>
-                      <div>
-                        <div className="font-black text-amber-300 text-sm">खरीदार पोर्टल सक्रिय (Buyer Desk Active) • {currentUser?.name}</div>
-                        <div className="text-stone-300">आप थोक खरीदार/मिलर के रूप में अनाज की शुद्ध लैंडेड लागत देख रहे हैं और सीधे FPO से खरीद सकते हैं।</div>
+                  {/* CONFIGURATION CONTROLS BAR */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-surface-border/60">
+                    {/* CROP SELECTOR */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-2 font-mono">
+                        {t.selectCrop}
+                      </label>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                        {CROP_CATALOG.map(crop => (
+                          <button
+                            key={crop.id}
+                            onClick={() => setSelectedCrop(crop.id)}
+                            className={`px-2.5 py-2 rounded-xl text-xs font-semibold transition-all flex flex-col items-center gap-1 border ${
+                              selectedCrop === crop.id
+                                ? "bg-emerald-500/20 border-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                                : "bg-surface-subtle/80 border-surface-border text-slate-400 hover:text-white hover:border-slate-600"
+                            }`}
+                          >
+                            <span className="text-base">{crop.icon}</span>
+                            <span className="line-clamp-1">{crop.id}</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => loginPersona("manager@doaba-fpo.org")}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow transition flex items-center space-x-1 cursor-pointer"
-                    >
-                      <span>🚜 विक्रेता (FPO) पोर्टल में बदलें →</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="bg-emerald-950/60 border border-emerald-500/70 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-lg">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">🚜</span>
-                      <div>
-                        <div className="font-black text-emerald-300 text-sm">विक्रेता / FPO पोर्टल सक्रिय (Seller Desk Active) • {currentUser?.name}</div>
-                        <div className="text-stone-300">आप FPO समिति के रूप में मंडी भाव, MSP अंतर और खरीदारों की मांग बोलियां देख रहे हैं।</div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => loginPersona("buyer@mill.com")}
-                      className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg shadow transition flex items-center space-x-1 cursor-pointer"
-                    >
-                      <span>🌾 खरीदार (Buyer) पोर्टल में बदलें →</span>
-                    </button>
-                  </div>
-                )}
 
-                <div className="bg-[#092c1d] p-4 sm:p-5 rounded-xl border border-[#1b5d3f] shadow-xl">
-                  <div className="flex items-center justify-between mb-4 border-b border-[#174e35] pb-2">
-                    <h2 className="text-base sm:text-lg font-bold text-amber-300 flex items-center">
-                      <span className="mr-2">🔍</span> शुद्ध लैंडेड भाव कैलकुलेटर (Landed Bhao Calculator)
-                    </h2>
-                    <span className="text-xs text-stone-300">
-                      मंडी भाव + बारदाना + गाड़ी भाड़ा + मंडी सेस + TCS + बीमा
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* DESTINATION CITY */}
                     <div>
-                      <label className="block text-xs font-semibold text-stone-300 mb-1">
-                        गंतव्य शहर / मिल (Delivery City):
+                      <label className="block text-xs font-semibold text-slate-300 mb-2 font-mono">
+                        {t.destinationCity}
                       </label>
                       <select
-                        value={city}
-                        onChange={e => setCity(e.target.value)}
-                        className="w-full bg-[#051c13] text-stone-100 text-sm font-semibold rounded-lg p-2.5 border border-[#1c6644] focus:outline-none focus:border-amber-400"
+                        value={destinationCity}
+                        onChange={(e) => setDestinationCity(e.target.value)}
+                        className="w-full bg-surface-subtle border border-surface-border text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500 font-medium"
                       >
-                        {CITY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-300 mb-1">
-                        फसल / अनाज (Commodity):
-                      </label>
-                      <select
-                        value={commodity}
-                        onChange={e => setCommodity(e.target.value)}
-                        className="w-full bg-[#051c13] text-stone-100 text-sm font-semibold rounded-lg p-2.5 border border-[#1c6644] focus:outline-none focus:border-amber-400"
-                      >
-                        {CROP_OPTIONS.map(cr => (
-                          <option key={cr.id} value={cr.id}>
-                            {cr.icon} {cr.hindi} (MSP: ₹{cr.msp})
+                        {DESTINATION_HUBS.map(hub => (
+                          <option key={hub.id} value={hub.id} className="bg-slate-900 text-white">
+                            {hub.label}
                           </option>
                         ))}
                       </select>
+                      <div className="text-[11px] text-slate-500 mt-1.5 font-mono">
+                        Direct heavy transit road corridor routing
+                      </div>
                     </div>
 
+                    {/* QUANTITY REQUIRED */}
                     <div>
-                      <label className="block text-xs font-semibold text-stone-300 mb-1">
-                        मात्रा (क्विंटल / Quintals):
+                      <label className="block text-xs font-semibold text-slate-300 mb-2 font-mono">
+                        {t.quantityRequired}
                       </label>
-                      <input
-                        type="number"
-                        min="10"
-                        step="10"
-                        value={quantityQtl}
-                        onChange={e => setQuantityQtl(e.target.value)}
-                        className="w-full bg-[#051c13] text-stone-100 text-sm font-mono font-bold rounded-lg p-2.5 border border-[#1c6644] focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-300 mb-1">
-                        बारदाना / पैकिंग (Bagging):
-                      </label>
-                      <select
-                        value={baggingType}
-                        onChange={e => setBaggingType(e.target.value)}
-                        className="w-full bg-[#051c13] text-stone-100 text-xs font-semibold rounded-lg p-2.5 border border-[#1c6644] focus:outline-none focus:border-amber-400"
-                      >
-                        {Object.entries(BAGGING_LABELS).map(([k, v]) => (
-                          <option key={k} value={k}>{v}</option>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="10"
+                          max="10000"
+                          step="10"
+                          value={requiredQty}
+                          onChange={(e) => setRequiredQty(e.target.value)}
+                          className="w-full bg-surface-subtle border border-surface-border text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                        />
+                        <span className="absolute right-3.5 top-2.5 text-xs text-slate-400 font-mono">Qtl</span>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        {[100, 200, 500, 1000].map(v => (
+                          <button
+                            key={v}
+                            onClick={() => setRequiredQty(v)}
+                            className={`text-[11px] px-2 py-0.5 rounded font-mono ${
+                              Number(requiredQty) === v ? "bg-emerald-500/30 text-emerald-300 font-bold" : "text-slate-400 hover:text-slate-200"
+                            }`}
+                          >
+                            {v}Q
+                          </button>
                         ))}
-                      </select>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* SPOTLIGHT BEST MANDI QUOTE */}
-                {activeBestPick && (
-                  <div className="bg-gradient-to-r from-[#0b3d29] via-[#093222] to-[#0a3826] rounded-2xl border-2 border-amber-400 p-5 sm:p-7 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 bg-amber-400 text-slate-950 font-black text-xs px-4 py-1.5 rounded-bl-xl shadow-lg flex items-center">
-                      <span className="mr-1">★</span> सर्वश्रेष्ठ मंडी सौदा (BEST BUY PICK)
+                {/* SPOTLIGHT: THE SINGLE BEST ONE RECOMMENDED */}
+                {bestPick ? (
+                  <div className="space-y-4">
+                    <div className="relative rounded-3xl bg-gradient-to-b from-emerald-950/40 via-surface-card to-surface-card border-2 border-emerald-500/50 p-6 sm:p-8 shadow-2xl shadow-emerald-950/40 overflow-hidden">
+                      <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                      {/* TOP BADGE */}
+                      <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-surface-border">
+                        <div className="flex items-center gap-3">
+                          <span className="px-3.5 py-1.5 rounded-full bg-emerald-500 text-black text-xs font-extrabold tracking-wider uppercase flex items-center gap-1.5 shadow-md shadow-emerald-500/30">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            {t.topPickBadge}
+                          </span>
+                          <span className="text-emerald-400 text-xs font-mono font-semibold">
+                            {t.topPickRank}
+                          </span>
+                        </div>
+
+                        {/* COMPOSITE AI SCORE */}
+                        <div className="flex items-center gap-3 bg-surface-base px-4 py-2 rounded-2xl border border-emerald-500/30">
+                          <div className="text-right">
+                            <div className="text-[10px] text-slate-400 font-mono uppercase">{t.recommendationScore}</div>
+                            <div className="text-lg font-black text-emerald-400 font-mono">
+                              {bestPick.recommendation_score} <span className="text-xs text-slate-500">/100</span>
+                            </div>
+                          </div>
+                          <div className="w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center font-bold text-xs text-emerald-300 font-mono">
+                            {Math.round(bestPick.recommendation_score)}%
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* MAIN STATS GRID */}
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-6">
+                        {/* LEFT: MANDI, FPO, AND NET LANDED COST */}
+                        <div className="lg:col-span-7 space-y-4">
+                          <div>
+                            <div className="text-xs font-mono text-slate-400 uppercase tracking-wider">{bestPick.commodity} • {bestPick.variety}</div>
+                            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mt-1">
+                              {bestPick.mandi}
+                            </h2>
+                            <div className="text-xs text-emerald-400 font-medium mt-1 flex items-center gap-1.5">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                              Producer: <span className="text-white font-semibold">{bestPick.fpo_name}</span>
+                            </div>
+                          </div>
+
+                          {/* FINANCIAL BREAKDOWN CARDS */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                            <div className="bg-surface-base/80 p-3.5 rounded-2xl border border-surface-border">
+                              <div className="text-[11px] text-slate-400 font-mono">{t.landedCost}</div>
+                              <div className="text-xl font-black text-emerald-400 font-mono mt-0.5">
+                                ₹{bestPick.net_landed_cost_per_qtl.toLocaleString()}
+                                <span className="text-xs text-slate-400 font-normal">/qtl</span>
+                              </div>
+                              <div className="text-[10px] text-slate-500 font-mono mt-1">
+                                Total: ₹{bestPick.total_order_cost.toLocaleString()}
+                              </div>
+                            </div>
+
+                            <div className="bg-surface-base/80 p-3.5 rounded-2xl border border-surface-border">
+                              <div className="text-[11px] text-slate-400 font-mono">{t.baseMandiPrice}</div>
+                              <div className="text-lg font-bold text-white font-mono mt-0.5">
+                                ₹{bestPick.base_price_per_qtl.toLocaleString()}
+                                <span className="text-xs text-slate-400 font-normal">/qtl</span>
+                              </div>
+                              <div className="text-[10px] text-emerald-400 font-mono mt-1">
+                                MSP: ₹{bestPick.benchmark_msp} ({bestPick.msp_badge})
+                              </div>
+                            </div>
+
+                            <div className="bg-surface-base/80 p-3.5 rounded-2xl border border-surface-border col-span-2 sm:col-span-1">
+                              <div className="text-[11px] text-slate-400 font-mono">{t.freightCost}</div>
+                              <div className="text-lg font-bold text-white font-mono mt-0.5">
+                                ₹{bestPick.freight_per_qtl.toLocaleString()}
+                                <span className="text-xs text-slate-400 font-normal">/qtl</span>
+                              </div>
+                              <div className="text-[10px] text-slate-500 font-mono mt-1">
+                                Fuel ₹{bestPick.freight_breakdown.fuel_distance_per_qtl} + Toll ₹{bestPick.freight_breakdown.toll_share_per_qtl}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* SAVINGS NOTICE */}
+                          <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-xs text-emerald-300 flex items-center gap-2 font-mono">
+                            <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span>{t.savingsNotice}: save up to <b>₹{(requiredQty * 120).toLocaleString()}</b> on landed procurement vs highest quote.</span>
+                          </div>
+                        </div>
+
+                        {/* RIGHT: INTELLIGENCE TELEMETRY: WEATHER, TEMPERATURE, DISTANCE, SPOILAGE */}
+                        <div className="lg:col-span-5 bg-surface-base/90 p-5 rounded-2xl border border-surface-border space-y-4">
+                          <div className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                            <span>Procurement Intelligence Telemetry</span>
+                            <span className="text-[10px] text-emerald-400 animate-pulse">● LIVE METRICS</span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            {/* DISTANCE & TRANSIT TIME */}
+                            <div className="p-3 bg-surface-card rounded-xl border border-surface-border">
+                              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 font-mono">
+                                <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                {t.transitDistance}
+                              </div>
+                              <div className="text-base font-bold text-white font-mono mt-1">
+                                {bestPick.distance_km} km
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono">
+                                ~{bestPick.transit_hours} hrs heavy transit
+                              </div>
+                            </div>
+
+                            {/* WEATHER & TEMPERATURE */}
+                            <div className="p-3 bg-surface-card rounded-xl border border-surface-border">
+                              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 font-mono">
+                                <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                {t.weatherCondition}
+                              </div>
+                              <div className="text-base font-bold text-amber-400 font-mono mt-1">
+                                {bestPick.origin_weather.temp_c}°C • {bestPick.origin_weather.condition}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono">
+                                Rain Risk: {bestPick.rain_risk_percent}%
+                              </div>
+                            </div>
+
+                            {/* HIGHWAY CORRIDOR */}
+                            <div className="p-3 bg-surface-card rounded-xl border border-surface-border">
+                              <div className="text-[11px] text-slate-400 font-mono">
+                                Corridor Waypoint
+                              </div>
+                              <div className="text-xs font-semibold text-white font-mono mt-1 line-clamp-1">
+                                {bestPick.waypoint_name}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono">
+                                {bestPick.waypoint_weather.temp_c}°C ({bestPick.waypoint_weather.condition})
+                              </div>
+                            </div>
+
+                            {/* SPOILAGE HAZARD */}
+                            <div className="p-3 bg-surface-card rounded-xl border border-surface-border">
+                              <div className="text-[11px] text-slate-400 font-mono">
+                                {t.spoilageRisk}
+                              </div>
+                              <div className="text-xs font-bold text-emerald-400 font-mono mt-1">
+                                {bestPick.spoilage_risk_pct}% (SAFE)
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono line-clamp-1">
+                                {bestPick.spoilage_alert}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ESCROW MILESTONES PREVIEW */}
+                          <div className="pt-2">
+                            <div className="text-[10px] font-mono text-slate-400 mb-1.5 flex justify-between">
+                              <span>3-Stage Escrow Lock Breakdown</span>
+                              <span>20% - 70% - 10%</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono">
+                              <div className="bg-surface-card p-1.5 rounded text-center border border-surface-border">
+                                <span className="text-slate-400 block">Advance 20%</span>
+                                <span className="text-emerald-400 font-bold">₹{bestPick.escrow_milestones.advance_20.toLocaleString()}</span>
+                              </div>
+                              <div className="bg-surface-card p-1.5 rounded text-center border border-surface-border">
+                                <span className="text-cyan-400 font-bold">₹{bestPick.escrow_milestones.dispatch_70.toLocaleString()}</span>
+                                <span className="text-slate-400 block">Dispatch 70%</span>
+                              </div>
+                              <div className="bg-surface-card p-1.5 rounded text-center border border-surface-border">
+                                <span className="text-amber-400 font-bold">₹{bestPick.escrow_milestones.final_10.toLocaleString()}</span>
+                                <span className="text-slate-400 block">Final 10%</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* CALLS TO ACTION */}
+                      <div className="flex flex-wrap items-center gap-4 pt-6 border-t border-surface-border">
+                        <button
+                          onClick={() => {
+                            setSelectedLotForOrder(bestPick);
+                            setIsBuyModalOpen(true);
+                          }}
+                          className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                          {t.executeOrder} (₹{bestPick.net_landed_cost_per_qtl}/qtl)
+                        </button>
+
+                        <button
+                          onClick={() => handleRequestSample(bestPick)}
+                          className="px-5 py-3 bg-surface-accent hover:bg-surface-card text-white font-semibold text-xs rounded-xl border border-surface-border transition-all flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                          {t.requestSample}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-                      
-                      <div className="lg:col-span-5 space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-300 text-xs font-bold border border-emerald-500">
-                            {activeBestPick.mandi} मंडी
-                          </span>
-                          <span className="text-xs text-stone-300 font-medium">
-                            {activeBestPick.fpo_name}
-                          </span>
-                        </div>
-
+                    {/* COMPARISON MATRIX OF ALL SURVEYED MANDIS */}
+                    <div className="bg-surface-card border border-surface-border rounded-2xl p-6 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
-                          <div className="text-xs text-stone-300 font-semibold">शुद्ध लैंडेड भाव (Landed Bhao at {city}):</div>
-                          <div className="flex items-baseline space-x-2">
-                            <span className="text-3xl sm:text-4xl font-black text-amber-300 font-mono">
-                              ₹{activeBestPick.net_landed_cost_per_qtl?.toLocaleString('en-IN')}
-                            </span>
-                            <span className="text-sm font-bold text-stone-300">/ क्विंटल</span>
-                          </div>
-                          <div className="text-xs text-emerald-400 font-semibold mt-1">
-                            कुल बिल (Invoice for {quantityQtl} qtl): ₹{activeBestPick.total_order_cost?.toLocaleString('en-IN')}
-                          </div>
+                          <h3 className="text-lg font-bold text-white tracking-tight">
+                            {t.allRankedMandis}
+                          </h3>
+                          <p className="text-xs text-slate-400">
+                            {t.allRankedSubtitle}
+                          </p>
                         </div>
-
-                        <div className="flex items-center space-x-2 text-xs">
-                          <span className="text-stone-300">सरकारी MSP (₹{activeBestPick.benchmark_msp}):</span>
-                          <span className={`px-2 py-0.5 rounded font-bold ${activeBestPick.is_above_msp ? 'bg-amber-900/60 text-amber-300 border border-amber-500' : 'bg-emerald-900/60 text-emerald-300 border border-emerald-500'}`}>
-                            {activeBestPick.msp_badge}
-                          </span>
-                        </div>
+                        <span className="text-xs font-mono text-slate-400 bg-surface-subtle px-3 py-1 rounded-full border border-surface-border">
+                          {allScannedListings.length} Mandi Hubs Analyzed
+                        </span>
                       </div>
 
-                      <div className="lg:col-span-4 bg-[#052116]/80 p-3.5 rounded-xl border border-[#1b5d3f] text-xs space-y-2 font-mono">
-                        <div className="font-sans font-bold text-amber-300 text-xs pb-1 border-b border-[#12422c]">
-                          पारदर्शी भाव विभाजन (Breakdown / qtl):
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-stone-300">मंडी मूल भाव (Base Bhao):</span>
-                          <span className="font-bold text-white">₹{activeBestPick.commercial_breakdown?.formula_per_qtl?.mandi_base_price?.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-stone-300">बारदाना पैकिंग (Bardana):</span>
-                          <span className="text-white">+₹{activeBestPick.commercial_breakdown?.formula_per_qtl?.packaging?.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-stone-300">गाड़ी भाड़ा ({activeBestPick.distance_km} km):</span>
-                          <span className="text-white">+₹{activeBestPick.commercial_breakdown?.formula_per_qtl?.highway_freight?.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-stone-300">मंडी सेस + RDF:</span>
-                          <span className="text-white">+₹{activeBestPick.commercial_breakdown?.formula_per_qtl?.apmc_state_cess?.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-stone-300">TCS (0.1%) + बीमा (0.08%):</span>
-                          <span className="text-white">+₹{(Number(activeBestPick.commercial_breakdown?.formula_per_qtl?.tcs || 0) + Number(activeBestPick.commercial_breakdown?.formula_per_qtl?.transit_risk || 0)).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between pt-1 border-t border-[#12422c] text-amber-300 font-bold text-sm">
-                          <span>शुद्ध लैंडेड भाव:</span>
-                          <span>₹{activeBestPick.net_landed_cost_per_qtl?.toFixed(2)}</span>
-                        </div>
+                      <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="border-b border-surface-border text-slate-400 font-mono uppercase text-[11px]">
+                              <th className="py-3 px-3">{t.rank}</th>
+                              <th className="py-3 px-3">{t.mandiLocation}</th>
+                              <th className="py-3 px-3">{t.mandiBasePrice}</th>
+                              <th className="py-3 px-3">{t.roadDistance}</th>
+                              <th className="py-3 px-3">{t.freightPerQtl}</th>
+                              <th className="py-3 px-3">{t.weatherTemp}</th>
+                              <th className="py-3 px-3">{t.netLandedQtl}</th>
+                              <th className="py-3 px-3">{t.score}</th>
+                              <th className="py-3 px-3 text-right">{t.action}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-surface-border/50 font-mono">
+                            {allScannedListings.map((item, idx) => (
+                              <tr key={item.id} className={`hover:bg-surface-accent/40 transition-colors ${idx === 0 ? "bg-emerald-500/5 font-semibold" : ""}`}>
+                                <td className="py-3.5 px-3">
+                                  {idx === 0 ? (
+                                    <span className="px-2 py-0.5 rounded bg-emerald-500 text-black font-bold text-[10px]">#1 BEST</span>
+                                  ) : (
+                                    <span className="text-slate-400">#{idx + 1}</span>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-3">
+                                  <div className="font-bold text-white font-sans text-sm">{item.mandi}</div>
+                                  <div className="text-[10px] text-slate-400 font-sans line-clamp-1">{item.fpo_name}</div>
+                                </td>
+                                <td className="py-3.5 px-3 text-white font-bold">
+                                  ₹{item.base_price_per_qtl.toLocaleString()}
+                                </td>
+                                <td className="py-3.5 px-3 text-slate-300">
+                                  {item.distance_km} km
+                                  <span className="text-[10px] text-slate-500 block">~{item.transit_hours} hrs</span>
+                                </td>
+                                <td className="py-3.5 px-3 text-slate-300">
+                                  ₹{item.freight_per_qtl}
+                                </td>
+                                <td className="py-3.5 px-3">
+                                  <span className={item.rain_risk_percent > 30 ? "text-amber-400" : "text-emerald-400"}>
+                                    {item.origin_weather.temp_c}°C ({item.origin_weather.condition})
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-3">
+                                  <span className="text-sm font-black text-emerald-400">
+                                    ₹{item.net_landed_cost_per_qtl.toLocaleString()}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-3">
+                                  <div className="w-16 bg-surface-base rounded-full h-2 overflow-hidden border border-surface-border">
+                                    <div className="bg-emerald-400 h-full rounded-full" style={{ width: `${item.recommendation_score}%` }}></div>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 mt-0.5 block">{item.recommendation_score}</span>
+                                </td>
+                                <td className="py-3.5 px-3 text-right space-x-1.5 whitespace-nowrap">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedLotForOrder(item);
+                                      setIsBuyModalOpen(true);
+                                    }}
+                                    className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-[11px] rounded-lg transition-all"
+                                  >
+                                    {t.buy}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRequestSample(item)}
+                                    className="px-2.5 py-1 bg-surface-subtle hover:bg-surface-accent text-slate-300 text-[11px] rounded-lg border border-surface-border transition-all"
+                                  >
+                                    {t.sample}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-surface-card border border-surface-border rounded-2xl p-12 text-center text-slate-400 font-mono text-sm">
+                    {isScanning ? t.scanning : "Scanning mandis..."}
+                  </div>
+                )}
+              </div>
+            )}
 
-                      <div className="lg:col-span-3 space-y-3">
-                        <div className="bg-[#052116]/80 p-3 rounded-xl border border-[#1b5d3f] text-xs">
-                          <div className="text-amber-300 font-bold mb-1 flex items-center">
-                            <span className="mr-1">🚛</span> हाइवे मौसम (Route Weather):
-                          </div>
-                          <div className="text-stone-300">
-                            {activeBestPick.waypoint_name}
-                          </div>
-                          <div className="flex items-center justify-between text-[11px] mt-1">
-                            <span>दूरी: <b>{activeBestPick.distance_km} km</b></span>
-                            <span>समय: <b>~{activeBestPick.transit_hours} घंटे</b></span>
-                          </div>
-                          <div className="mt-1 text-[11px] text-emerald-300 font-semibold">
-                            {activeBestPick.spoilage_alert}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          {isBuyer ? (
-                            <button
-                              onClick={() => setShowBuyModal(activeBestPick)}
-                              className="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg text-sm shadow-lg transition flex items-center justify-center space-x-1"
-                            >
-                              <span>⚡ सौदा पक्का करें (Lock Deal - 20% अमानत)</span>
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setBidForm({
-                                  commodity: activeBestPick.commodity,
-                                  target_qty_qtl: activeBestPick.available_qty_qtl || 200,
-                                  target_bid_price_per_qtl: activeBestPick.base_price_per_qtl,
-                                  delivery_city: activeBestPick.mandi
-                                });
-                                setShowNewBidModal(true);
-                              }}
-                              className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-lg text-sm shadow-lg transition flex items-center justify-center space-x-1"
-                            >
-                              <span>🚜 इस भाव पर नया FPO बिक्री प्रस्ताव लगाएं</span>
-                            </button>
-                          )}
-                          
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => setShowSampleModal(activeBestPick)}
-                              className="py-1.5 bg-[#0e3b28] hover:bg-[#154d35] text-stone-200 text-xs font-bold rounded-lg border border-[#206948] transition"
-                            >
-                              📦 1kg नमूना (₹450)
-                            </button>
-                            <button
-                              onClick={() => setShowAssayingModal(activeBestPick)}
-                              className="py-1.5 bg-[#0e3b28] hover:bg-[#154d35] text-stone-200 text-xs font-bold rounded-lg border border-[#206948] transition"
-                            >
-                              🔬 लैब जांच रिपोर्ट
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
+            {/* 2. DEMAND & BIDDING EXCHANGE */}
+            {activeTab === "demand" && (
+              <div className="space-y-6 animate-fadeIn">
+                {/* NOTICE FOR FPO USERS */}
+                {currentUser.role === "FPO" && (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-3">
+                    <svg className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div className="text-xs text-amber-200">
+                      <b>{t.fpoAccount}</b>: {t.fpoDeskNotice}
                     </div>
                   </div>
                 )}
 
-                {/* MANDI-WISE COMPARISON TABLE */}
-                <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] overflow-hidden shadow-xl">
-                  <div className="p-4 border-b border-[#174e35] flex items-center justify-between">
-                    <h3 className="text-base font-bold text-amber-300 flex items-center">
-                      <span className="mr-2">📊</span> सभी उपलब्ध मंडियों के भाव (All Mandi Quotes)
-                    </h3>
-                    <span className="text-xs text-stone-300 font-mono">
-                      कुल मंडियां: {allListings.length}
-                    </span>
+                {/* HEADER & ACTIONS */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">
+                      {t.biddingTitle}
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {t.biddingSubtitle}
+                    </p>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-stone-200">
-                      <thead className="bg-[#062217] text-stone-400 border-b border-[#164d34] font-semibold">
-                        <tr>
-                          <th className="p-3">उत्पत्ति मंडी</th>
-                          <th className="p-3">FPO / सप्लायर</th>
-                          <th className="p-3">उपलब्ध स्टॉक</th>
-                          <th className="p-3">मंडी भाव (Base)</th>
-                          <th className="p-3">भाड़ा</th>
-                          <th className="p-3">शुद्ध लैंडेड भाव</th>
-                          <th className="p-3 text-right">कार्रवाई</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#13442e] font-mono">
-                        {allListings.map(lot => (
-                          <tr key={lot.id} className="hover:bg-[#0c3725] transition">
-                            <td className="p-3">
-                              <span className="font-bold text-white font-sans">{lot.mandi}</span>
-                              <div className="text-[10px] text-stone-400 font-mono">{lot.distance_km} km</div>
-                            </td>
-                            <td className="p-3 font-sans text-stone-300">{lot.fpo_name}</td>
-                            <td className="p-3 font-bold text-white">{lot.available_qty_qtl} क्विंटल</td>
-                            <td className="p-3 text-amber-300 font-bold">₹{lot.base_price_per_qtl}</td>
-                            <td className="p-3 text-stone-300">₹{lot.freight_per_qtl?.toFixed(2)}</td>
-                            <td className="p-3 text-amber-400 font-black text-sm">
-                              ₹{lot.net_landed_cost_per_qtl?.toLocaleString('en-IN')}
-                            </td>
-                            <td className="p-3 text-right space-x-2 font-sans">
-                              {isBuyer ? (
-                                <button
-                                  onClick={() => setShowBuyModal(lot)}
-                                  className="px-3 py-1 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow"
-                                >
-                                  सौदा करें
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => {
-                                    setSelectedPassbookLot(lot.id);
-                                    setTab("passbook");
-                                  }}
-                                  className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow"
-                                >
-                                  किसान बही
-                                </button>
-                              )}
-                              <button
-                                onClick={() => setShowSampleModal(lot)}
-                                className="px-2 py-1 rounded bg-[#10422c] hover:bg-[#17563b] text-stone-200 text-xs border border-emerald-600"
-                              >
-                                नमूना
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setIsPlaceBidOpen(true)}
+                      className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                      {currentUser.role === "FPO" ? "Post FPO Supply Bid" : t.placeBidBtn}
+                    </button>
                   </div>
                 </div>
 
-              </div>
-            )}
-
-            {/* TAB 2: LIVE BIDS & DOUBLE AUCTION (BOTH BUYERS & FPOS CAN BID) */}
-            {tab === "bidding" && (
-              <div className="space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-4 bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
-                  <div>
-                    <h2 className="text-lg font-bold text-amber-300 flex items-center">
-                      <span className="mr-2">⚖️</span> 2-तरफा लाइव बोली व सौदा कक्ष (Two-Way Double Auction)
-                    </h2>
-                    <p className="text-xs text-stone-300">
-                      {isBuyer 
-                        ? "खरीदार पोर्टल: नई मांग बोली लगाएं, या FPO द्वारा लगाए गए बिक्री प्रस्तावों को तुरंत स्वीकार करें।"
-                        : "FPO / विक्रेता पोर्टल: नया बिक्री प्रस्ताव दर्ज करें, या खरीदारों की खुली बोलियों पर सौदा पक्का करें / पलट भाव दें।"}
-                    </p>
-                  </div>
-                  
-                  {/* Action Button depends on logged-in role */}
+                {/* FILTER TABS */}
+                <div className="flex items-center gap-2 border-b border-surface-border pb-3">
+                  {[
+                    { id: "ALL", label: t.allBids },
+                    { id: "BUYER_DEMAND", label: t.buyerDemands },
+                    { id: "FPO_OFFER", label: t.fpoOffers },
+                    { id: "MY_BIDS", label: t.myBids }
+                  ].map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => setBidFilter(f.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        bidFilter === f.id
+                          ? "bg-surface-card text-emerald-400 border border-emerald-500/30"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
                   <button
-                    onClick={() => setShowNewBidModal(true)}
-                    className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg text-xs shadow-lg transition flex items-center space-x-1"
+                    onClick={fetchLiveBids}
+                    className="ml-auto text-slate-400 hover:text-white text-xs flex items-center gap-1 font-mono"
                   >
-                    <span>{isBuyer ? "+ नई खरीदार मांग बोली लगाएं (+ Buy Demand)" : "+ नया FPO बिक्री प्रस्ताव लगाएं (+ FPO Sell Offer)"}</span>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    Refresh
                   </button>
                 </div>
 
+                {/* BIDS GRID / LIST */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {bids.map(bid => {
-                    const isFpoOffer = bid.status === "OPEN_FPO_OFFER" || bid.buyer_name?.includes("FPO") || bid.buyer_name?.includes("Guild") || bid.buyer_name?.includes("Producers");
-                    const isBuyerDemand = bid.status === "OPEN_AUCTION" && !isFpoOffer;
-                    const isCounter = bid.status === "COUNTER_OFFERED";
-                    const isLocked = bid.status === "ACCEPTED" || bid.status === "TRADE_LOCKED";
+                  {filteredBids.map(bid => {
+                    const isFpoOffer = bid.status === "OPEN_FPO_OFFER";
+                    const isCountered = bid.status === "COUNTER_OFFERED";
+                    const isAccepted = bid.status === "ACCEPTED";
+                    const canAcceptAsFpo = currentUser.role === "FPO" && !isFpoOffer && !isAccepted;
+                    const canCounterAsFpo = currentUser.role === "FPO" && !isFpoOffer && !isAccepted;
+                    const canAcceptAsBuyer = currentUser.role === "BUYER" && (isFpoOffer || isCountered) && !isAccepted;
 
                     return (
-                      <div key={bid.bid_id} className={`rounded-xl border p-4 space-y-3 shadow-xl flex flex-col justify-between ${
-                        isFpoOffer ? 'bg-[#093522] border-emerald-500/60' : 'bg-[#092c1d] border-[#1b5d3f]'
-                      }`}>
-                        <div>
+                      <div
+                        key={bid.bid_id}
+                        className="bg-surface-card border border-surface-border hover:border-slate-700 rounded-2xl p-5 space-y-4 transition-all shadow-md flex flex-col justify-between"
+                      >
+                        <div className="space-y-3">
+                          {/* TOP HEADER */}
                           <div className="flex items-center justify-between">
-                            <span className="font-mono text-xs font-bold text-amber-300">{bid.bid_id}</span>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              isFpoOffer ? 'bg-emerald-900/90 text-emerald-300 border border-emerald-500' :
-                              isBuyerDemand ? 'bg-blue-900/90 text-blue-300 border border-blue-500' :
-                              isCounter ? 'bg-amber-900/90 text-amber-300 border border-amber-500 animate-pulse' :
-                              'bg-stone-800 text-stone-300 border border-stone-600'
+                            <span className="text-xs font-mono font-bold text-slate-400">
+                              #{bid.bid_id}
+                            </span>
+                            <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                              isAccepted
+                                ? "bg-slate-800 text-slate-400 border border-slate-700"
+                                : isFpoOffer
+                                ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                : isCountered
+                                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                             }`}>
-                              {isFpoOffer ? "🟢 FPO बिक्री प्रस्ताव" : isBuyerDemand ? "🔵 खरीदार मांग बोली" : isCounter ? "🔄 पलट भाव" : "✓ सौदा पक्का"}
+                              {isAccepted ? t.statusAccepted : isFpoOffer ? t.statusOpenFpo : isCountered ? t.statusCountered : t.statusOpenAuction}
                             </span>
                           </div>
 
-                          <div className="mt-2">
-                            <div className="text-xs text-stone-400 font-semibold">{isFpoOffer ? 'विक्रेता (Seller / FPO):' : 'खरीदार (Buyer):'}</div>
-                            <div className="text-sm font-bold text-white">{bid.buyer_name}</div>
-                            <div className="text-xs text-stone-400">स्थान / मंडी: {bid.delivery_city}</div>
+                          {/* COMMODITY & VOLUME */}
+                          <div>
+                            <div className="text-lg font-bold text-white">
+                              {bid.commodity}
+                            </div>
+                            <div className="text-xs text-slate-400 font-mono mt-0.5">
+                              Quantity: <b className="text-white">{bid.target_qty_qtl} Quintals</b>
+                            </div>
                           </div>
 
-                          <div className="bg-[#051c13] p-2.5 rounded-lg border border-[#164d34] my-2 text-xs font-mono space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-stone-400">अनाज:</span>
-                              <span className="font-bold text-white">{bid.commodity}</span>
+                          {/* BID PRICE & DESTINATION */}
+                          <div className="grid grid-cols-2 gap-2 bg-surface-base p-3 rounded-xl border border-surface-border text-xs font-mono">
+                            <div>
+                              <span className="text-[10px] text-slate-500 block">{t.targetPrice}</span>
+                              <span className="text-emerald-400 font-bold text-sm">₹{bid.target_bid_price_per_qtl}/qtl</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-stone-400">मात्रा:</span>
-                              <span className="font-bold text-white">{bid.target_qty_qtl} क्विंटल</span>
+                            <div>
+                              <span className="text-[10px] text-slate-500 block">{t.deliveryCity}</span>
+                              <span className="text-white font-semibold">{bid.delivery_city}</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-stone-400">{isFpoOffer ? 'मांगा गया भाव:' : 'लक्ष्य बोली भाव:'}</span>
-                              <span className="font-black text-amber-300">₹{bid.target_bid_price_per_qtl} / qtl</span>
-                            </div>
+                          </div>
 
-                            {isCounter && (
-                              <div className="pt-1.5 border-t border-[#164d34] text-amber-300">
-                                <div className="flex justify-between font-bold">
-                                  <span>पलट भाव ({bid.counter_fpo_name || 'विपक्षी'}):</span>
-                                  <span>₹{bid.counter_price_per_qtl} / qtl</span>
-                                </div>
-                                <div className="text-[10px] text-stone-300 italic mt-0.5">
-                                  "{bid.counter_notes}"
-                                </div>
+                          {/* POSTED BY INFO */}
+                          <div className="text-xs text-slate-400 font-sans">
+                            <span className="text-slate-500">Party:</span> <b className="text-slate-200">{bid.buyer_name}</b>
+                          </div>
+
+                          {/* COUNTER OFFER DETAILS (IF ANY) */}
+                          {isCountered && (
+                            <div className="p-2.5 bg-purple-500/10 border border-purple-500/30 rounded-xl text-xs space-y-1">
+                              <div className="text-purple-300 font-semibold font-mono">
+                                FPO Counter: ₹{bid.counter_price_per_qtl}/qtl
                               </div>
-                            )}
-                          </div>
+                              <div className="text-[11px] text-slate-400 italic">
+                                "{bid.counter_notes}"
+                              </div>
+                            </div>
+                          )}
                         </div>
 
-                        {/* Action Buttons based on User Role */}
-                        <div className="pt-2 border-t border-[#164d34] flex items-center space-x-2">
-                          {/* FPO Sell Offer: Buyer can accept or counter */}
-                          {isFpoOffer && (
+                        {/* ACTION BUTTONS */}
+                        <div className="pt-3 border-t border-surface-border/60 flex items-center gap-2">
+                          {canAcceptAsFpo && (
                             <>
                               <button
                                 onClick={() => handleAcceptBid(bid.bid_id)}
-                                className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded transition"
+                                className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/15"
                               >
-                                {isBuyer ? "✓ यह भाव स्वीकारें (Buy Now)" : "✓ सौदा मंजूर"}
+                                {t.acceptBid}
                               </button>
                               <button
                                 onClick={() => {
-                                  setShowCounterModal(bid);
-                                  setCounterPrice(bid.target_bid_price_per_qtl - 30);
+                                  setSelectedBidForCounter(bid);
+                                  setIsCounterOpen(true);
                                 }}
-                                className="py-1.5 px-3 bg-[#134931] hover:bg-[#1a5d3e] text-amber-300 font-bold text-xs rounded border border-amber-500/40 transition"
+                                className="px-3 py-2 bg-surface-subtle hover:bg-surface-accent border border-surface-border text-white text-xs font-medium rounded-xl transition-all"
                               >
-                                काउंटर दें
+                                Counter
                               </button>
                             </>
                           )}
 
-                          {/* Buyer Buy Demand: FPO can accept or counter */}
-                          {isBuyerDemand && (
-                            <>
-                              <button
-                                onClick={() => handleAcceptBid(bid.bid_id)}
-                                className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded transition"
-                              >
-                                {isFPO ? "✓ सौदा मंजूर करें (Sell at ₹" + bid.target_bid_price_per_qtl + ")" : "✓ सौदा मंजूर"}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowCounterModal(bid);
-                                  setCounterPrice(bid.target_bid_price_per_qtl + 40);
-                                }}
-                                className="py-1.5 px-3 bg-[#134931] hover:bg-[#1a5d3e] text-amber-300 font-bold text-xs rounded border border-amber-500/40 transition"
-                              >
-                                पलट भाव
-                              </button>
-                            </>
-                          )}
-
-                          {isCounter && (
+                          {canAcceptAsBuyer && (
                             <button
-                              onClick={() => handleAcceptCounter(bid.bid_id)}
-                              className="w-full py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded shadow transition"
+                              onClick={() => isCountered ? handleAcceptCounter(bid.bid_id) : handleAcceptBid(bid.bid_id)}
+                              className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/15"
                             >
-                              ✓ पलट भाव स्वीकारें (₹{bid.counter_price_per_qtl})
+                              {isCountered ? t.counterAccepted : t.acceptBid}
                             </button>
                           )}
 
-                          {isLocked && (
-                            <div className="w-full text-center text-xs text-emerald-400 font-bold py-1 bg-emerald-950/60 rounded border border-emerald-800">
-                              सौदा पूर्ण • अमानत खाता सक्रिय
+                          {isAccepted && (
+                            <div className="w-full py-1.5 text-center text-xs font-mono text-slate-400 bg-surface-base rounded-xl border border-surface-border">
+                              Locked with {bid.accepted_by_fpo || "Trading Desk"}
                             </div>
                           )}
                         </div>
@@ -955,577 +1364,295 @@
               </div>
             )}
 
-            {/* TAB 3: ORDERS & 3-STAGE ESCROW */}
-            {tab === "escrow" && (
-              <div className="space-y-6">
-                <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
-                  <h2 className="text-lg font-bold text-amber-300 flex items-center">
-                    <span className="mr-2">📋</span> सक्रिय व्यापार सौदे एवं 3-चरणीय सुरक्षित भुगतान
+            {/* 3. NATIONAL MANDI PRICE BOARD */}
+            {activeTab === "prices" && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">
+                      {t.pricesTitle}
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {t.pricesSubtitle}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder={t.searchPlaceholder}
+                        value={priceSearch}
+                        onChange={(e) => setPriceSearch(e.target.value)}
+                        className="bg-surface-subtle border border-surface-border text-xs rounded-xl pl-9 pr-3 py-2 text-white focus:outline-none focus:border-emerald-500 w-56 font-sans"
+                      />
+                      <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+
+                    <select
+                      value={priceCropFilter}
+                      onChange={(e) => setPriceCropFilter(e.target.value)}
+                      className="bg-surface-subtle border border-surface-border text-xs rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-sans"
+                    >
+                      <option value="ALL">{t.allCommodities}</option>
+                      {CROP_CATALOG.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* PRICES TABLE */}
+                <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden shadow-xl">
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-surface-border text-slate-400 font-mono uppercase text-[11px] bg-surface-subtle/50">
+                          <th className="py-3 px-4">{t.mandiLocation}</th>
+                          <th className="py-3 px-4">{t.commodity}</th>
+                          <th className="py-3 px-4">{t.baseMandiPrice}</th>
+                          <th className="py-3 px-4">{t.stockAvailable}</th>
+                          <th className="py-3 px-4">{t.moisture}</th>
+                          <th className="py-3 px-4">{t.fpoProducer}</th>
+                          <th className="py-3 px-4 text-right">{t.action}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surface-border/60 font-mono">
+                        {filteredLots.map(lot => (
+                          <tr key={lot.id} className="hover:bg-surface-accent/30 transition-colors">
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-white font-sans text-sm">{lot.mandi}</div>
+                              <div className="text-[10px] text-emerald-400 font-mono">M-Form Verified</div>
+                            </td>
+                            <td className="py-3 px-4 font-sans font-medium text-slate-200">
+                              {lot.commodity} • <span className="text-slate-400 text-xs">{lot.variety}</span>
+                            </td>
+                            <td className="py-3 px-4 font-bold text-emerald-400 text-sm">
+                              ₹{lot.base_price_per_qtl.toLocaleString()}
+                              <span className="text-xs text-slate-500 font-normal">/qtl</span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-200 font-bold">
+                              {lot.available_qty_qtl} Qtl
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                                lot.moisture_percent <= 12 ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+                              }`}>
+                                {lot.moisture_percent}%
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-sans text-slate-300">
+                              {lot.fpo_name}
+                            </td>
+                            <td className="py-3 px-4 text-right space-x-2 whitespace-nowrap">
+                              <button
+                                onClick={() => {
+                                  setSelectedLotForOrder(lot);
+                                  setIsBuyModalOpen(true);
+                                }}
+                                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-lg transition-all"
+                              >
+                                {t.buy}
+                              </button>
+                              <button
+                                onClick={() => handleRequestSample(lot)}
+                                className="px-3 py-1.5 bg-surface-subtle hover:bg-surface-accent border border-surface-border text-slate-300 text-xs rounded-lg transition-all"
+                              >
+                                {t.sample}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 4. ORDERS & ESCROW SETTLEMENTS */}
+            {activeTab === "orders" && (
+              <div className="space-y-6 animate-fadeIn">
+                <div>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">
+                    {t.ordersTitle}
                   </h2>
-                  <p className="text-xs text-stone-300 mt-1">
-                    चरण 1: 20% अग्रिम लॉक (सौदा पुष्टि पर) • चरण 2: 70% गाड़ी रवानगी पर जारी • चरण 3: 10% माल प्राप्ति पर अंतिम भुगतान
+                  <p className="text-xs text-slate-400 mt-1">
+                    {t.ordersSubtitle}
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  {orders.map(order => {
-                    const milestones = order.escrow_stages || {};
-                    const isAdvLocked = order.status === "ADVANCE_ESCROW_LOCKED";
-                    const isDispatched = order.status === "DISPATCHED_70_RELEASED" || order.status === "DISPATCH_70_RELEASED";
-                    const isSettled = order.status === "DELIVERED_AND_SETTLED" || order.status === "COMPLETED_AND_SETTLED";
-
-                    return (
-                      <div key={order.order_id} className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] p-5 shadow-xl space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#164d34] pb-3">
-                          <div>
-                            <span className="text-xs font-mono font-bold text-amber-400 mr-2">{order.order_id}</span>
-                            <span className="text-xs text-stone-300">ई-वे बिल: <b className="text-white font-mono">{order.eway_bill_no}</b></span>
-                          </div>
-                          <span className={`px-2.5 py-1 rounded text-xs font-bold ${
-                            isAdvLocked ? 'bg-amber-900/80 text-amber-300 border border-amber-500' :
-                            isDispatched ? 'bg-blue-900/80 text-blue-300 border border-blue-500' :
-                            'bg-emerald-900/80 text-emerald-300 border border-emerald-500'
-                          }`}>
-                            {isAdvLocked ? "चरण 1: 20% पेशगी लॉक" : isDispatched ? "चरण 2: 70% गाड़ी रवानगी जारी" : "चरण 3: सौदा पूर्ण (100% भुगतान)"}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#051c13] p-3 rounded-lg border border-[#164d34] text-xs font-mono">
-                          <div>
-                            <div className="text-stone-400">खरीदार:</div>
-                            <div className="font-bold text-white font-sans">{order.buyer_name}</div>
-                          </div>
-                          <div>
-                            <div className="text-stone-400">मात्रा:</div>
-                            <div className="font-bold text-white">{order.quantity_qtl} क्विंटल</div>
-                          </div>
-                          <div>
-                            <div className="text-stone-400">मूल भाव:</div>
-                            <div className="font-bold text-amber-300">₹{order.base_price_per_qtl}/qtl</div>
-                          </div>
-                          <div>
-                            <div className="text-stone-400">कुल इनवॉइस:</div>
-                            <div className="font-black text-amber-400">₹{order.total_invoice_amount?.toLocaleString('en-IN')}</div>
-                          </div>
-                        </div>
-
-                        {/* 3-Stage Visual Lifecycle */}
-                        <div className="space-y-2">
-                          <div className="text-xs font-semibold text-stone-300">भुगतान चरण (3-Stage Milestone Tracking):</div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
-                            <div className={`p-3 rounded-lg border ${isAdvLocked || isDispatched || isSettled ? 'bg-[#0d3b27] border-emerald-500 text-emerald-200' : 'bg-[#051c13] border-[#164d34] text-stone-400'}`}>
-                              <div className="font-bold flex items-center justify-between">
-                                <span>चरण 1: 20% अग्रिम</span>
-                                <span>✓</span>
-                              </div>
-                              <div className="text-sm font-black text-amber-300 mt-1">
-                                ₹{(milestones.stage_1_advance_20?.amount || (order.total_invoice_amount * 0.2))?.toLocaleString('en-IN')}
-                              </div>
-                              <div className="text-[10px] text-stone-300">सौदा पुष्टि पर लॉक</div>
-                            </div>
-
-                            <div className={`p-3 rounded-lg border ${isDispatched || isSettled ? 'bg-[#0d3b27] border-emerald-500 text-emerald-200' : 'bg-[#051c13] border-[#164d34] text-stone-400'}`}>
-                              <div className="font-bold flex items-center justify-between">
-                                <span>चरण 2: 70% रवानगी</span>
-                                <span>{isDispatched || isSettled ? "✓ जारी" : "प्रतीक्षारत"}</span>
-                              </div>
-                              <div className="text-sm font-black text-amber-300 mt-1">
-                                ₹{(milestones.stage_2_dispatch_70?.amount || (order.total_invoice_amount * 0.7))?.toLocaleString('en-IN')}
-                              </div>
-                              <div className="text-[10px] text-stone-300">गाड़ी रवानगी पर जारी</div>
-                            </div>
-
-                            <div className={`p-3 rounded-lg border ${isSettled ? 'bg-[#0d3b27] border-emerald-500 text-emerald-200' : 'bg-[#051c13] border-[#164d34] text-stone-400'}`}>
-                              <div className="font-bold flex items-center justify-between">
-                                <span>चरण 3: 10% अंतिम</span>
-                                <span>{isSettled ? "✓ पूरा" : "प्रतीक्षारत"}</span>
-                              </div>
-                              <div className="text-sm font-black text-amber-300 mt-1">
-                                ₹{(milestones.stage_3_delivery_10?.amount || (order.total_invoice_amount * 0.1))?.toLocaleString('en-IN')}
-                              </div>
-                              <div className="text-[10px] text-stone-300">माल प्राप्ति पर पूर्ण</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 1-Click Simplified Order Actions */}
-                        <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[#164d34]">
-                          {isAdvLocked && (
-                            <button
-                              onClick={() => handleDispatchOrder(order.order_id)}
-                              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg shadow-lg transition flex items-center space-x-1"
-                            >
-                              <span>🚛 गाड़ी रवाना करें (Mark Dispatched - 70% जारी)</span>
-                            </button>
-                          )}
-
-                          {isDispatched && (
-                            <button
-                              onClick={() => handleDeliverOrder(order.order_id)}
-                              className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-lg shadow-lg transition flex items-center space-x-1"
-                            >
-                              <span>✓ माल प्राप्ति पुष्टि (Confirm Delivery - 10% अंतिम भुगतान)</span>
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => setShowEwayModal(order)}
-                            className="px-3 py-1.5 bg-[#0e3b28] hover:bg-[#154d35] text-stone-200 font-bold text-xs rounded-lg border border-[#206948]"
-                          >
-                            ई-वे बिल देखें
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* TAB 4: FARMER MEMBER PASSBOOK */}
-            {tab === "passbook" && (
-              <div className="space-y-6">
-                <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f] flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-bold text-amber-300 flex items-center">
-                      <span className="mr-2">👨‍🌾</span> किसान सदस्य बही खाता (Farmer Member Pool Passbook)
-                    </h2>
-                    <p className="text-xs text-stone-300 mt-0.5">
-                      FPO पूल्ड लॉट में किसान अंशदान एवं पारदर्शी बैंक भुगतान विवरण।
-                    </p>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-stone-300">लॉट चुनें:</span>
-                    <select
-                      value={selectedPassbookLot}
-                      onChange={e => setSelectedPassbookLot(e.target.value)}
-                      className="bg-[#051c13] text-amber-300 text-xs font-bold rounded p-2 border border-[#1c6644]"
-                    >
-                      <option value="FPO-LOT-101">FPO-LOT-101: शरबती गेहूं (Doaba FPO - खन्ना मंडी, पंजाब)</option>
-                      <option value="FPO-LOT-102">FPO-LOT-102: पूसा 1121 बासमती धान (Taraori FPO - करनाल मंडी, हरियाणा)</option>
-                      <option value="FPO-LOT-103">FPO-LOT-103: लोकवान प्रीमियम गेहूं (Malwa Samriddhi - इंदौर मंडी, मध्य प्रदेश)</option>
-                      <option value="FPO-LOT-104">FPO-LOT-104: देशी चना (Hadoti Kisan FPO - कोटा मंडी, राजस्थान)</option>
-                      <option value="FPO-LOT-105">FPO-LOT-105: शरबती ग्रेड-ए गेहूं (Rohilkhand FPO - बरेली मंडी, उत्तर प्रदेश)</option>
-                      <option value="FPO-LOT-106">FPO-LOT-106: गुजरात जी-4 मूंगफली (Saurashtra Cluster - राजकोट मंडी, गुजरात)</option>
-                      <option value="FPO-LOT-201">FPO-LOT-201: पीबीडब्ल्यू 725 गेहूं (Bathinda Progressive - बठिंडा मंडी, पंजाब)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {passbook && (
-                  <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] overflow-hidden shadow-xl">
-                    <div className="p-4 bg-[#062217] border-b border-[#164d34] flex flex-wrap justify-between items-center text-xs font-mono">
-                      <div>
-                        <span className="text-stone-400">संस्था:</span> <b className="text-white font-sans">{passbook.fpo_name}</b> ({passbook.mandi})
-                      </div>
-                      <div className="space-x-4">
-                        <span>कुल पूल्ड माल: <b className="text-amber-300">{passbook.total_pool_qty_qtl} क्विंटल</b></span>
-                        <span>सौदा भाव: <b className="text-amber-300">₹{passbook.settled_base_price_per_qtl || passbook.base_price_per_qtl}/qtl</b></span>
-                      </div>
+                  {liveOrders.length === 0 ? (
+                    <div className="bg-surface-card border border-surface-border rounded-2xl p-12 text-center text-slate-400 font-mono text-xs">
+                      No commercial orders placed yet. Execute an order via the Procurement AI or Demand Exchange to see live escrow settlements.
                     </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs text-stone-200">
-                        <thead className="bg-[#041a11] text-stone-400 font-semibold border-b border-[#164d34]">
-                          <tr>
-                            <th className="p-3.5">किसान का नाम (सदस्य आईडी)</th>
-                            <th className="p-3.5">गांव / केंद्र</th>
-                            <th className="p-3.5">सब्मिट मात्रा</th>
-                            <th className="p-3.5">सकल देय राशि (Gross)</th>
-                            <th className="p-3.5">मंडी शुल्क / FPO कटौती</th>
-                            <th className="p-3.5">बैंक खाता (IFSC)</th>
-                            <th className="p-3.5">शुद्ध बैंक भुगतान</th>
-                            <th className="p-3.5 text-right">भुगतान स्थिति</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#13442e] font-mono">
-                          {(passbook.farmer_records || passbook.farmer_ledgers || []).map(f => (
-                            <tr key={f.member_id || f.farmer_id} className="hover:bg-[#0c3725] transition">
-                              <td className="p-3.5 font-sans">
-                                <div className="font-bold text-white">{f.name || f.farmer_name}</div>
-                                <div className="text-[10px] text-stone-400 font-mono">{f.member_id || f.farmer_id} • {f.aadhar_masked}</div>
-                              </td>
-                              <td className="p-3.5 font-sans text-stone-300">{f.village}</td>
-                              <td className="p-3.5 font-bold text-white">{f.pool_qty_qtl || f.pool_quantity_qtl} qtl</td>
-                              <td className="p-3.5 text-stone-200">₹{(f.gross_mandi_value || f.gross_payable || 0)?.toLocaleString('en-IN')}</td>
-                              <td className="p-3.5 text-red-300">-₹{(f.mandi_cess_share || f.fpo_handling_deduction || 0)?.toFixed(2)}</td>
-                              <td className="p-3.5 font-mono text-[11px] text-stone-300">
-                                <div>A/C: {f.bank_account_masked || f.bank_account}</div>
-                                <div className="text-stone-400">IFSC: {f.ifsc_code || f.ifsc}</div>
-                              </td>
-                              <td className="p-3.5 text-emerald-400 font-black text-sm">
-                                ₹{(f.net_payout_amount || f.net_disbursed_to_bank || 0)?.toLocaleString('en-IN')}
-                              </td>
-                              <td className="p-3.5 text-right font-sans">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                  (f.payout_status === 'CREDITED_VIA_RTGS')
-                                    ? 'bg-emerald-900/80 text-emerald-300 border-emerald-600'
-                                    : 'bg-amber-900/60 text-amber-300 border-amber-600'
-                                }`}>
-                                  {f.payout_status === 'CREDITED_VIA_RTGS' ? '✓ RTGS द्वारा जमा' : '🔒 एस्क्रो में सुरक्षित'}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB 5: COMPLIANCE & SAMPLES */}
-            {tab === "compliance" && (
-              <div className="space-y-6">
-                <div className="bg-[#092c1d] p-4 rounded-xl border border-[#1b5d3f]">
-                  <h2 className="text-lg font-bold text-amber-300 flex items-center">
-                    <span className="mr-2">📜</span> सरकारी अनुपालन एवं नमूना ट्रैकिंग (M-Form & E-Way Bill)
-                  </h2>
-                  <p className="text-xs text-stone-300 mt-1">
-                    राज्य कृषि विपणन बोर्ड डिजिटल एम-फॉर्म, 12-अंकीय जीएसटी ई-वे बिल तथा 1 किग्रा सीलबंद नमूना कूरियर रिकॉर्ड।
-                  </p>
-                </div>
-
-                <div className="bg-[#092c1d] rounded-xl border border-[#1b5d3f] overflow-hidden shadow-xl">
-                  <div className="p-4 border-b border-[#164d34] flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-amber-300">📦 1 किग्रा सीलबंद नमूना ट्रैकिंग (Dispatched Samples)</h3>
-                    <span className="text-xs text-stone-400 font-mono">कुल नमूने: {samples.length}</span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-stone-200 font-mono">
-                      <thead className="bg-[#062217] text-stone-400 border-b border-[#164d34]">
-                        <tr>
-                          <th className="p-3">नमूना आईडी</th>
-                          <th className="p-3">लॉट नंबर</th>
-                          <th className="p-3">खरीदार</th>
-                          <th className="p-3">कूरियर पार्टनर</th>
-                          <th className="p-3">ट्रैकिंग नंबर</th>
-                          <th className="p-3">शुल्क</th>
-                          <th className="p-3 text-right">स्थिति</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#13442e]">
-                        {samples.map(s => (
-                          <tr key={s.sample_id} className="hover:bg-[#0c3725]">
-                            <td className="p-3 font-bold text-amber-300">{s.sample_id}</td>
-                            <td className="p-3 text-white">{s.lot_id}</td>
-                            <td className="p-3 font-sans text-stone-300">{s.buyer_name}</td>
-                            <td className="p-3 font-sans">{s.courier_partner}</td>
-                            <td className="p-3 text-amber-200 font-bold">{s.courier_tracking_no}</td>
-                            <td className="p-3">₹{s.fee_paid}</td>
-                            <td className="p-3 text-right font-sans">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-900/80 text-blue-300 border border-blue-600">
-                                {s.status}
+                  ) : (
+                    liveOrders.map(ord => (
+                      <div key={ord.order_id} className="bg-surface-card border border-surface-border rounded-2xl p-6 space-y-4 shadow-lg">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-surface-border">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-white font-mono">{ord.order_id}</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                                {ord.status}
                               </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                            </div>
+                            <div className="text-xs text-slate-400 font-mono mt-1">
+                              GST E-Way Bill: <span className="text-slate-200">{ord.eway_bill_no}</span> • Quantity: <span className="text-white font-bold">{ord.quantity_qtl} Qtl</span>
+                            </div>
+                          </div>
+
+                          <div className="text-right font-mono">
+                            <div className="text-xs text-slate-400">{t.totalAmount}</div>
+                            <div className="text-lg font-extrabold text-emerald-400">
+                              ₹{ord.total_invoice_amount.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 3-STAGE ESCROW STATUS VISUALIZER */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
+                          <div className={`p-3 rounded-xl border ${
+                            ord.status === "ADVANCE_ESCROW_LOCKED" || ord.status === "DISPATCHED" || ord.status === "DELIVERED"
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                              : "bg-surface-base border-surface-border text-slate-500"
+                          }`}>
+                            <div className="text-[10px] uppercase">{t.advance20} (20%)</div>
+                            <div className="text-sm font-bold mt-0.5">₹{ord.escrow_stages?.advance_20_pct?.toLocaleString()}</div>
+                            <div className="text-[10px] mt-1 text-emerald-400">✓ Locked in Bank Escrow</div>
+                          </div>
+
+                          <div className={`p-3 rounded-xl border ${
+                            ord.status === "DISPATCHED" || ord.status === "DELIVERED"
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                              : "bg-surface-base border-surface-border text-slate-500"
+                          }`}>
+                            <div className="text-[10px] uppercase">{t.dispatch70} (70%)</div>
+                            <div className="text-sm font-bold mt-0.5">₹{ord.escrow_stages?.dispatch_70_pct?.toLocaleString()}</div>
+                            <div className="text-[10px] mt-1">
+                              {ord.status === "DISPATCHED" || ord.status === "DELIVERED" ? "✓ Released on Weighment Loading" : "Pending Truck Loading"}
+                            </div>
+                          </div>
+
+                          <div className={`p-3 rounded-xl border ${
+                            ord.status === "DELIVERED"
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                              : "bg-surface-base border-surface-border text-slate-500"
+                          }`}>
+                            <div className="text-[10px] uppercase">{t.final10} (10%)</div>
+                            <div className="text-sm font-bold mt-0.5">₹{ord.escrow_stages?.final_10_pct?.toLocaleString()}</div>
+                            <div className="text-[10px] mt-1">
+                              {ord.status === "DELIVERED" ? "✓ Final Settlement Complete" : "Held until Mill Weighment"}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* STAGE TRANSITION ACTIONS */}
+                        <div className="flex items-center gap-3 pt-2">
+                          {ord.status === "ADVANCE_ESCROW_LOCKED" && (
+                            <button
+                              onClick={() => handleDispatchOrder(ord.order_id)}
+                              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow transition-all font-mono"
+                            >
+                              🚀 {t.dispatchOrder} (Release 70% Escrow)
+                            </button>
+                          )}
+
+                          {ord.status === "DISPATCHED" && (
+                            <button
+                              onClick={() => handleDeliverOrder(ord.order_id)}
+                              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow transition-all font-mono"
+                            >
+                              🏁 {t.deliverOrder} (Release Final 10% Escrow)
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
+
           </main>
 
-          {/* TWO DEDICATED LOGIN PORTALS MODAL */}
-          {showLoginModal && (
-            <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
-              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-xl w-full p-6 space-y-5 shadow-2xl">
-                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
+          {/* FOOTER */}
+          <footer className="border-t border-surface-border bg-surface-subtle/80 py-6 text-center text-xs text-slate-500 font-mono">
+            AgriTrade Intelligence Desk • High-Throughput Grain Logistics & APMC Trading Protocol • 2026
+          </footer>
+
+          {/* --- MODALS --- */}
+
+          {/* 1. PLACE BID / OFFER MODAL */}
+          {isPlaceBidOpen && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-surface-card border border-surface-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex items-center justify-between pb-3 border-b border-surface-border">
+                  <h3 className="text-base font-bold text-white">
+                    {currentUser.role === "FPO" ? "Post FPO Supply Bid" : t.modalPlaceBidTitle}
+                  </h3>
+                  <button onClick={() => setIsPlaceBidOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.target);
+                  try {
+                    const res = await fetch("/api/v1/bids/create", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        commodity: fd.get("commodity"),
+                        target_qty_qtl: Number(fd.get("target_qty_qtl")),
+                        target_bid_price_per_qtl: Number(fd.get("target_bid_price_per_qtl")),
+                        delivery_city: fd.get("delivery_city")
+                      })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      showToast(data.message || "Bid placed successfully!");
+                      setIsPlaceBidOpen(false);
+                      fetchLiveBids();
+                    } else {
+                      showToast(data.detail || "Error placing bid", "error");
+                    }
+                  } catch (err) {
+                    showToast("Network error", "error");
+                  }
+                }} className="space-y-4 text-xs font-mono">
                   <div>
-                    <h3 className="text-lg font-black text-amber-300">🔐 व्यापार पोर्टल चयन (Choose Login Portal)</h3>
-                    <p className="text-xs text-stone-300">खरीदार (Buyer/Miller) या विक्रेता (Seller/FPO) के रूप में लॉगिन करें</p>
-                  </div>
-                  <button onClick={() => setShowLoginModal(false)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Buyer Portal Card */}
-                  <div className={`rounded-xl border-2 p-4 space-y-3 flex flex-col justify-between transition ${
-                    isBuyer ? 'bg-[#062419] border-amber-400 ring-2 ring-amber-400/40' : 'bg-[#051c13] border-amber-500/60'
-                  }`}>
-                    <div>
-                      <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm">
-                        <span className="text-2xl">🌾</span>
-                        <span>खरीदार पोर्टल (BUYER DESK)</span>
-                        {isBuyer && <span className="ml-auto text-[10px] bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded">सक्रिय</span>}
-                      </div>
-                      <p className="text-[11px] text-stone-400 mt-1">
-                        फ्लोर मिलर्स, फूड प्रोसेसर्स व थोक व्यापारियों के लिए: शुद्ध लैंडेड भाव देखें, मांग बोली लगाएं व सीधे माल खरीदें।
-                      </p>
-                    </div>
-
-                    <div className="space-y-2 pt-2 border-t border-[#164d34]">
-                      <div className="text-[11px] text-stone-300 font-semibold">उपलब्ध खरीदार खाते (Click to Switch):</div>
-                      {(accounts.length ? accounts : DEFAULT_ACCOUNTS).filter(a => a.role === "BUYER").map(b => (
-                        <button
-                          key={b.email}
-                          type="button"
-                          onClick={() => loginPersona(b.email)}
-                          className={`w-full text-left p-2.5 rounded text-xs font-bold border transition flex items-center justify-between cursor-pointer ${
-                            currentUser?.email === b.email
-                              ? 'bg-amber-500/20 border-amber-400 text-amber-200'
-                              : 'bg-[#0b3323] hover:bg-[#124b34] text-stone-200 border-emerald-700/60'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-center space-x-1.5">
-                              <span className="font-sans">{b.name}</span>
-                              {currentUser?.email === b.email && <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1 rounded">सक्रिय</span>}
-                            </div>
-                            <div className="text-[10px] text-stone-400 font-normal font-sans">{b.city} • {b.phone}</div>
-                          </div>
-                          <span className="text-amber-400 text-xs font-bold">{currentUser?.email === b.email ? '✓ चयनित' : 'लॉगिन →'}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Seller / FPO Portal Card */}
-                  <div className={`rounded-xl border-2 p-4 space-y-3 flex flex-col justify-between transition ${
-                    isFPO ? 'bg-[#062419] border-emerald-400 ring-2 ring-emerald-400/40' : 'bg-[#051c13] border-emerald-500/60'
-                  }`}>
-                    <div>
-                      <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
-                        <span className="text-2xl">🚜</span>
-                        <span>विक्रेता / FPO पोर्टल (SELLER DESK)</span>
-                        {isFPO && <span className="ml-auto text-[10px] bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded">सक्रिय</span>}
-                      </div>
-                      <p className="text-[11px] text-stone-400 mt-1">
-                        किसान उत्पादक संगठन (FPOs) व आढ़तियों के लिए: बिक्री बोली / प्रस्ताव लगाएं, खरीदार बोलियां स्वीकारें व किसान खाता देखें।
-                      </p>
-                    </div>
-
-                    <div className="space-y-2 pt-2 border-t border-[#164d34]">
-                      <div className="text-[11px] text-stone-300 font-semibold">उपलब्ध विक्रेता FPO खाते (Click to Switch):</div>
-                      {(accounts.length ? accounts : DEFAULT_ACCOUNTS).filter(a => a.role === "FPO").map(f => (
-                        <button
-                          key={f.email}
-                          type="button"
-                          onClick={() => loginPersona(f.email)}
-                          className={`w-full text-left p-2.5 rounded text-xs font-bold border transition flex items-center justify-between cursor-pointer ${
-                            currentUser?.email === f.email
-                              ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200'
-                              : 'bg-[#0b3323] hover:bg-[#124b34] text-stone-200 border-emerald-700/60'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-center space-x-1.5">
-                              <span className="font-sans">{f.name}</span>
-                              {currentUser?.email === f.email && <span className="text-[9px] bg-emerald-400 text-slate-950 font-black px-1 rounded">सक्रिय</span>}
-                            </div>
-                            <div className="text-[10px] text-stone-400 font-normal font-sans">{f.city} मंडी • {f.phone}</div>
-                          </div>
-                          <span className="text-emerald-400 text-xs font-bold">{currentUser?.email === f.email ? '✓ चयनित' : 'लॉगिन →'}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 text-center text-xs text-stone-300">
-                  वर्तमान सक्रिय खाता: <b className="text-amber-300">{currentUser?.name}</b> <span className="text-stone-400">({currentUser?.role === 'BUYER' ? 'खरीदार मिलर' : 'FPO समिति'})</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* BUY MODAL */}
-          {showBuyModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-lg w-full p-6 space-y-4 shadow-2xl">
-                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <h3 className="text-base font-bold text-amber-300">⚡ सौदा पक्का करें (Confirm Trade & Advance Escrow)</h3>
-                  <button onClick={() => setShowBuyModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  <div className="bg-[#051c13] p-3 rounded-lg border border-[#164d34] space-y-1 font-mono">
-                    <div className="flex justify-between text-stone-300">
-                      <span>मंडी / FPO:</span>
-                      <span className="font-bold text-white font-sans">{showBuyModal.mandi} ({showBuyModal.fpo_name})</span>
-                    </div>
-                    <div className="flex justify-between text-stone-300">
-                      <span>फसल एवं मात्रा:</span>
-                      <span className="font-bold text-white">{commodity} • {quantityQtl} क्विंटल</span>
-                    </div>
-                    <div className="flex justify-between text-stone-300">
-                      <span>शुद्ध लैंडेड भाव:</span>
-                      <span className="font-bold text-amber-300">₹{showBuyModal.net_landed_cost_per_qtl} / qtl</span>
-                    </div>
-                    <div className="flex justify-between pt-1 border-t border-[#164d34] text-amber-400 font-bold text-sm">
-                      <span>कुल इनवॉइस:</span>
-                      <span>₹{showBuyModal.total_order_cost?.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between text-emerald-400 font-bold">
-                      <span>चरण 1 पेशगी अमानत (20% Advance):</span>
-                      <span>₹{showBuyModal.escrow_milestones?.advance_20?.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-stone-300 mb-1">डिलिवरी पता (Mill Address):</label>
-                    <textarea
-                      rows="2"
-                      value={deliveryAddress}
-                      onChange={e => setDeliveryAddress(e.target.value)}
-                      className="w-full bg-[#051c13] text-stone-100 p-2 rounded border border-[#1c6644]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-stone-300 mb-1">GSTIN नंबर:</label>
-                    <input
-                      type="text"
-                      value={gstin}
-                      onChange={e => setGstin(e.target.value)}
-                      className="w-full bg-[#051c13] text-stone-100 font-mono p-2 rounded border border-[#1c6644]"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex space-x-3 pt-2">
-                  <button onClick={() => setShowBuyModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
-                  <button onClick={() => handleExecuteBuy(showBuyModal)} className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">20% अमानत जमा कर सौदा पक्का करें</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SAMPLE MODAL */}
-          {showSampleModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
-                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <h3 className="text-base font-bold text-amber-300">📦 1 किग्रा सीलबंद नमूना मांगें</h3>
-                  <button onClick={() => setShowSampleModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  <div className="bg-[#051c13] p-3 rounded-lg border border-[#164d34] space-y-1 font-mono">
-                    <div>लॉट: <b className="text-white">{showSampleModal.id}</b> ({showSampleModal.mandi})</div>
-                    <div>कूरियर शुल्क: <b className="text-amber-300">₹450.00 (Flat Fee)</b></div>
-                  </div>
-                  <div>
-                    <label className="block text-stone-300 mb-1">कूरियर प्राप्ति का पता:</label>
-                    <textarea
-                      rows="2"
-                      value={deliveryAddress}
-                      onChange={e => setDeliveryAddress(e.target.value)}
-                      className="w-full bg-[#051c13] text-stone-100 p-2 rounded border border-[#1c6644]"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex space-x-3 pt-2">
-                  <button onClick={() => setShowSampleModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
-                  <button onClick={() => handleRequestSample(showSampleModal)} className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">₹450 भुगतान कर नमूना मंगवाएं</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* LAB ASSAYING REPORT MODAL */}
-          {showAssayingModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-              <div className="bg-[#092c1d] rounded-2xl border-2 border-emerald-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
-                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <h3 className="text-base font-bold text-emerald-300">🔬 NABL प्रयोगशाला गुणवत्ता रिपोर्ट</h3>
-                  <button onClick={() => setShowAssayingModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
-                </div>
-
-                <div className="space-y-2 text-xs font-mono bg-[#051c13] p-4 rounded-xl border border-[#164d34]">
-                  <div className="text-amber-300 font-sans font-bold pb-1 border-b border-[#164d34]">
-                    {showAssayingModal.mandi} मंडी • {showAssayingModal.commodity} ({showAssayingModal.variety})
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-300">नमी (Moisture):</span>
-                    <span className="font-bold text-white">{showAssayingModal.moisture_percent}% (मानक 11.5%)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-300">कचरा / धूल:</span>
-                    <span className="font-bold text-white">{showAssayingModal.assaying?.foreign_matter_pct || 0.6}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-300">टूटे दाने:</span>
-                    <span className="font-bold text-white">{showAssayingModal.assaying?.broken_pct || 1.2}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-300">प्रोटीन:</span>
-                    <span className="font-bold text-white">{showAssayingModal.assaying?.protein_pct || 11.4}%</span>
-                  </div>
-                </div>
-
-                <button onClick={() => setShowAssayingModal(null)} className="w-full py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">बंद करें</button>
-              </div>
-            </div>
-          )}
-
-          {/* NEW BID / FPO SELL OFFER MODAL (ADAPTS TO BUYER VS FPO) */}
-          {showNewBidModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
-                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <div>
-                    <h3 className="text-base font-bold text-amber-300">
-                      {isFPO ? "🌾 नया FPO बिक्री प्रस्ताव दर्ज करें (Post Sell Offer)" : "+ नई खरीदार मांग बोली दर्ज करें (Post Buy Demand)"}
-                    </h3>
-                    <p className="text-[11px] text-stone-300">
-                      {isFPO ? `FPO: ${currentUser?.name}` : `खरीदार: ${currentUser?.name}`}
-                    </p>
-                  </div>
-                  <button onClick={() => setShowNewBidModal(false)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
-                </div>
-
-                <form onSubmit={handleCreateBid} className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-stone-300 mb-1">अनाज (Commodity):</label>
-                    <select
-                      value={bidForm.commodity}
-                      onChange={e => setBidForm({ ...bidForm, commodity: e.target.value })}
-                      className="w-full bg-[#051c13] text-stone-100 p-2.5 rounded border border-[#1c6644]"
-                    >
-                      {CROP_OPTIONS.map(c => <option key={c.id} value={c.id}>{c.hindi}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-stone-300 mb-1">{isFPO ? 'बिक्री हेतु उपलब्ध मात्रा (क्विंटल):' : 'आवश्यक मात्रा (क्विंटल):'}</label>
-                    <input
-                      type="number"
-                      value={bidForm.target_qty_qtl}
-                      onChange={e => setBidForm({ ...bidForm, target_qty_qtl: Number(e.target.value) })}
-                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-stone-300 mb-1">{isFPO ? 'मांग भाव / Ask Price (₹/क्विंटल):' : 'लक्ष्य खरीद भाव / Target Price (₹/क्विंटल):'}</label>
-                    <input
-                      type="number"
-                      value={bidForm.target_bid_price_per_qtl}
-                      onChange={e => setBidForm({ ...bidForm, target_bid_price_per_qtl: Number(e.target.value) })}
-                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-stone-300 mb-1">{isFPO ? 'उत्पत्ति मंडी / स्थान:' : 'गंतव्य शहर (डिलिवरी):'}</label>
-                    <select
-                      value={bidForm.delivery_city}
-                      onChange={e => setBidForm({ ...bidForm, delivery_city: e.target.value })}
-                      className="w-full bg-[#051c13] text-stone-100 p-2.5 rounded border border-[#1c6644]"
-                    >
-                      {CITY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                    <label className="block text-slate-400 mb-1">{t.selectCrop}</label>
+                    <select name="commodity" className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white">
+                      {CROP_CATALOG.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
                     </select>
                   </div>
 
-                  <div className="flex space-x-3 pt-2">
-                    <button type="button" onClick={() => setShowNewBidModal(false)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
-                    <button type="submit" className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">
-                      {isFPO ? "बिक्री प्रस्ताव बोर्ड पर लगाएं" : "मांग बोली बोर्ड पर लगाएं"}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-400 mb-1">{t.targetQty}</label>
+                      <input type="number" name="target_qty_qtl" defaultValue="300" min="10" required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white font-bold" />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">{currentUser.role === "FPO" ? "Asking Price (₹/qtl)" : "Target Price (₹/qtl)"}</label>
+                      <input type="number" name="target_bid_price_per_qtl" defaultValue="2550" min="100" required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white font-bold" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 mb-1">{t.deliveryCity}</label>
+                    <select name="delivery_city" className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white">
+                      {DESTINATION_HUBS.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="flex gap-3 pt-3">
+                    <button type="button" onClick={() => setIsPlaceBidOpen(false)} className="flex-1 py-2.5 bg-surface-subtle hover:bg-surface-accent border border-surface-border text-white rounded-xl">
+                      {t.cancel}
+                    </button>
+                    <button type="submit" className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl shadow-lg shadow-emerald-500/20">
+                      {t.confirm}
                     </button>
                   </div>
                 </form>
@@ -1533,101 +1660,216 @@
             </div>
           )}
 
-          {/* COUNTER OFFER MODAL */}
-          {showCounterModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-              <div className="bg-[#092c1d] rounded-2xl border-2 border-amber-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
-                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <h3 className="text-base font-bold text-amber-300">🔄 पलट भाव प्रस्ताव (Counter Offer)</h3>
-                  <button onClick={() => setShowCounterModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
+          {/* 2. COUNTER OFFER MODAL */}
+          {isCounterOpen && selectedBidForCounter && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-surface-card border border-surface-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex items-center justify-between pb-3 border-b border-surface-border">
+                  <h3 className="text-base font-bold text-white">{t.modalCounterTitle}</h3>
+                  <button onClick={() => setIsCounterOpen(false)} className="text-slate-400 hover:text-white">✕</button>
                 </div>
 
-                <form onSubmit={handleCounterBid} className="space-y-3 text-xs">
-                  <div className="bg-[#051c13] p-2.5 rounded border border-[#164d34] font-mono">
-                    <div>बोली आईडी: <b className="text-amber-300">{showCounterModal.bid_id}</b></div>
-                    <div>सामने वाले का भाव: <b>₹{showCounterModal.target_bid_price_per_qtl} / qtl</b></div>
+                <div className="p-3 bg-surface-base rounded-xl text-xs font-mono space-y-1">
+                  <div>Buyer: <b className="text-white">{selectedBidForCounter.buyer_name}</b></div>
+                  <div>Commodity: <b className="text-white">{selectedBidForCounter.commodity} ({selectedBidForCounter.target_qty_qtl} Qtl)</b></div>
+                  <div>Buyer's Bid: <b className="text-emerald-400">₹{selectedBidForCounter.target_bid_price_per_qtl}/qtl</b></div>
+                </div>
+
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.target);
+                  try {
+                    const res = await fetch(`/api/v1/bids/${selectedBidForCounter.bid_id}/counter`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        counter_price_per_qtl: Number(fd.get("counter_price_per_qtl")),
+                        counter_notes: fd.get("counter_notes") || "FPO standard commercial counter quote"
+                      })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      showToast(data.message || "Counter offer submitted!");
+                      setIsCounterOpen(false);
+                      fetchLiveBids();
+                    } else {
+                      showToast(data.detail || "Failed to submit counter", "error");
+                    }
+                  } catch (err) {
+                    showToast("Network error", "error");
+                  }
+                }} className="space-y-4 text-xs font-mono">
+                  <div>
+                    <label className="block text-slate-400 mb-1">{t.counterPrice}</label>
+                    <input type="number" name="counter_price_per_qtl" defaultValue={selectedBidForCounter.target_bid_price_per_qtl + 40} required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white font-bold" />
                   </div>
 
                   <div>
-                    <label className="block text-stone-300 mb-1">आपका पलट भाव (₹/qtl):</label>
-                    <input
-                      type="number"
-                      value={counterPrice}
-                      onChange={e => setCounterPrice(e.target.value)}
-                      className="w-full bg-[#051c13] text-stone-100 font-mono font-bold p-2.5 rounded border border-[#1c6644]"
-                      required
-                    />
+                    <label className="block text-slate-400 mb-1">Notes</label>
+                    <input type="text" name="counter_notes" defaultValue="Moisture certified <11.5% with premium B-Twill packaging" className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white" />
                   </div>
 
-                  <div>
-                    <label className="block text-stone-300 mb-1">टिप्पणी:</label>
-                    <textarea
-                      rows="2"
-                      value={counterNotes}
-                      onChange={e => setCounterNotes(e.target.value)}
-                      className="w-full bg-[#051c13] text-stone-100 p-2 rounded border border-[#1c6644]"
-                    />
-                  </div>
-
-                  <div className="flex space-x-3 pt-2">
-                    <button type="button" onClick={() => setShowCounterModal(null)} className="flex-1 py-2 rounded bg-stone-700 text-stone-200 font-bold">रद्द करें</button>
-                    <button type="submit" className="flex-1 py-2 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg">पलट भाव भेजें</button>
+                  <div className="flex gap-3 pt-3">
+                    <button type="button" onClick={() => setIsCounterOpen(false)} className="flex-1 py-2.5 bg-surface-subtle hover:bg-surface-accent border border-surface-border text-white rounded-xl">
+                      {t.cancel}
+                    </button>
+                    <button type="submit" className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-lg shadow-purple-600/20">
+                      Submit Counter
+                    </button>
                   </div>
                 </form>
               </div>
             </div>
           )}
 
-          {/* E-WAY BILL MODAL */}
-          {showEwayModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-              <div className="bg-[#092c1d] rounded-2xl border-2 border-emerald-400 max-w-md w-full p-6 space-y-4 shadow-2xl">
-                <div className="flex justify-between items-center border-b border-[#164d34] pb-3">
-                  <h3 className="text-base font-bold text-emerald-300">📜 12-अंकीय GST ई-वे बिल रसीद</h3>
-                  <button onClick={() => setShowEwayModal(null)} className="text-stone-400 hover:text-white font-bold text-xl">×</button>
+          {/* 3. COMMERCIAL ORDER & ESCROW CHECKOUT MODAL */}
+          {isBuyModalOpen && selectedLotForOrder && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-surface-card border border-surface-border rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex items-center justify-between pb-3 border-b border-surface-border">
+                  <h3 className="text-base font-bold text-white">{t.modalOrderTitle}</h3>
+                  <button onClick={() => setIsBuyModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
                 </div>
 
-                <div className="bg-[#051c13] p-4 rounded-xl border border-[#164d34] text-xs font-mono space-y-2">
-                  <div className="text-center pb-2 border-b border-[#164d34]">
-                    <div className="text-stone-400">e-Way Bill No.</div>
-                    <div className="text-lg font-black text-amber-300 tracking-wider">{showEwayModal.eway_bill_no}</div>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-400">ऑर्डर reference:</span>
-                    <span className="font-bold text-white">{showEwayModal.order_id}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-400">खरीदार GSTIN:</span>
-                    <span className="font-bold text-white">{showEwayModal.gstin}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-400">मात्रा:</span>
-                    <span className="font-bold text-white">{showEwayModal.quantity_qtl} क्विंटल</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-400">कुल इनवॉइस:</span>
-                    <span className="font-bold text-amber-300">₹{showEwayModal.total_invoice_amount?.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-400">सत्यापन:</span>
-                    <span className="font-bold text-emerald-400 font-sans">✓ CGST Rule 138 सत्यापित</span>
-                  </div>
+                <div className="p-3 bg-surface-base rounded-xl text-xs font-mono space-y-1">
+                  <div>Origin Mandi: <b className="text-white">{selectedLotForOrder.mandi}</b></div>
+                  <div>Commodity: <b className="text-white">{selectedLotForOrder.commodity} ({selectedLotForOrder.variety})</b></div>
+                  <div>Base Price: <b className="text-emerald-400">₹{selectedLotForOrder.base_price_per_qtl}/qtl</b></div>
                 </div>
 
-                <button onClick={() => setShowEwayModal(null)} className="w-full py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">बंद करें</button>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.target);
+                  try {
+                    const res = await fetch("/api/v1/orders/buy", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        lot_id: selectedLotForOrder.id,
+                        quantity_qtl: Number(fd.get("quantity_qtl")),
+                        delivery_address: fd.get("delivery_address"),
+                        gstin: fd.get("gstin"),
+                        payment_method: "ESCROW_UPI",
+                        bagging_type: "50KG_JUTE_GUNNY",
+                        transit_insurance_opted: true
+                      })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      showToast(data.message || "Order confirmed! 20% Escrow locked.");
+                      setIsBuyModalOpen(false);
+                      setActiveTab("orders");
+                      fetchLiveOrders();
+                      fetchMarketLots();
+                    } else {
+                      showToast(data.detail || "Error creating order", "error");
+                    }
+                  } catch (err) {
+                    showToast("Network error creating order", "error");
+                  }
+                }} className="space-y-3 text-xs font-mono">
+                  <div>
+                    <label className="block text-slate-400 mb-1">{t.quantityRequired}</label>
+                    <input type="number" name="quantity_qtl" defaultValue={requiredQty} min="10" required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white font-bold" />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 mb-1">{t.deliveryAddress}</label>
+                    <input type="text" name="delivery_address" defaultValue={currentUser.address || "Focal Point Phase-V, Jalandhar"} required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white" />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 mb-1">{t.gstinNumber}</label>
+                    <input type="text" name="gstin" defaultValue={currentUser.gstin || "03AAACA4582K1ZD"} required className="w-full bg-surface-subtle border border-surface-border rounded-xl px-3 py-2 text-white" />
+                  </div>
+
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[11px] text-emerald-300">
+                    🔒 <b>Escrow Guarantee</b>: 20% advance locked immediately. 70% released upon dispatch weighment slip. 10% released upon arrival quality verification.
+                  </div>
+
+                  <div className="flex gap-3 pt-3">
+                    <button type="button" onClick={() => setIsBuyModalOpen(false)} className="flex-1 py-2.5 bg-surface-subtle hover:bg-surface-accent border border-surface-border text-white rounded-xl">
+                      {t.cancel}
+                    </button>
+                    <button type="submit" className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl shadow-lg shadow-emerald-500/20">
+                      Confirm & Lock Escrow
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
 
-          {/* Footer */}
-          <footer className="bg-[#03170f] border-t border-[#12422c] py-4 text-center text-xs text-stone-400 font-medium">
-            किसान व्यापार मंडी डेस्क • राष्ट्रीय कृषि थोक व्यापार एवं सुरक्षित अमानत प्रणाली • All Mandi Statutory Rules & GST Compliant
-          </footer>
+          {/* 4. ACCOUNT / ROLE SWITCHER MODAL */}
+          {isAccountModalOpen && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-surface-card border border-surface-border rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex items-center justify-between pb-3 border-b border-surface-border">
+                  <h3 className="text-base font-bold text-white">{t.switchAccount}</h3>
+                  <button onClick={() => setIsAccountModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      authenticateUser(DEMO_ACCOUNTS.buyer);
+                      setIsAccountModalOpen(false);
+                    }}
+                    className={`w-full p-4 rounded-xl border text-left transition-all ${
+                      currentUser.role === "BUYER" ? "bg-indigo-500/15 border-indigo-500 text-white" : "bg-surface-subtle border-surface-border text-slate-300 hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="text-xs font-mono font-bold text-indigo-400 uppercase">🏢 {t.buyerAccount}</div>
+                    <div className="text-sm font-bold text-white mt-1">Aryan Foods & Flour Mills</div>
+                    <div className="text-[11px] text-slate-400 font-mono">Jalandhar, Punjab • GSTIN Verified</div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      authenticateUser(DEMO_ACCOUNTS.fpo);
+                      setIsAccountModalOpen(false);
+                    }}
+                    className={`w-full p-4 rounded-xl border text-left transition-all ${
+                      currentUser.role === "FPO" ? "bg-amber-500/15 border-amber-500 text-white" : "bg-surface-subtle border-surface-border text-slate-300 hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="text-xs font-mono font-bold text-amber-400 uppercase">🌾 {t.fpoAccount}</div>
+                    <div className="text-sm font-bold text-white mt-1">Doaba Farmer Producer Co.</div>
+                    <div className="text-[11px] text-slate-400 font-mono">Khanna Mandi, Punjab • Registered FPO</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TOAST NOTIFICATIONS */}
+          <div className="fixed bottom-6 right-6 z-50 space-y-2 max-w-sm pointer-events-none">
+            {toasts.map(toast => (
+              <div
+                key={toast.id}
+                className={`p-4 rounded-2xl shadow-xl border text-xs font-mono font-semibold flex items-center gap-2 pointer-events-auto transition-all transform translate-y-0 ${
+                  toast.type === "error"
+                    ? "bg-red-950/90 text-red-200 border-red-800"
+                    : "bg-surface-card/95 text-emerald-300 border-emerald-500/40"
+                }`}
+              >
+                <span>{toast.type === "error" ? "❌" : "✓"}</span>
+                <span>{toast.message}</span>
+              </div>
+            ))}
+          </div>
+
         </div>
       );
     }
 
-    ReactDOM.render(<App />, document.getElementById('root'));
+    ReactDOM.render(<App />, document.getElementById("root"));
   </script>
 </body>
 </html>

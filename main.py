@@ -663,6 +663,23 @@ def get_market_registry():
         "msp_benchmarks": MSP_BENCHMARKS
     }
 
+@app.get("/api/v1/market/lots")
+def get_market_lots(db: Session = Depends(get_db)):
+    lots = db.query(models.CropLot).all()
+    return [{
+        "id": l.id,
+        "commodity": l.commodity,
+        "variety": l.variety,
+        "mandi": l.mandi,
+        "fpo_name": l.fpo_name,
+        "base_price_per_qtl": l.base_price_per_qtl,
+        "available_qty_qtl": l.available_qty_qtl,
+        "moisture_percent": l.moisture_percent,
+        "bagging_type": l.bagging_type,
+        "mform_document_hash": l.mform_document_hash,
+        "assaying": l.assaying
+    } for l in lots]
+
 @app.post("/api/v1/recommendations")
 async def get_market_recommendations(query: BestBuyQuery, db: Session = Depends(get_db)):
     db_lots = db.query(models.CropLot).filter(
